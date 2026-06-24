@@ -15,19 +15,20 @@ return new class extends Migration
         $table->id('id_evento');
         $table->unsignedBigInteger('id_organizador');
         $table->unsignedBigInteger('id_categoria');
+        $table->unsignedBigInteger('id_sede');
         $table->string('nombre_evento');
         $table->text('descripcion');
         $table->dateTime('fecha_inicio');
         $table->dateTime('fecha_fin');
-        $table->string('ubicacion');
         $table->integer('capacidad_maxima');
         $table->string('imagen_portada')->nullable();
-        $table->string('estado_evento'); // Ej: Programado, En Curso, Cancelado
+        $table->enum('estado_evento', ['Programado', 'En Curso', 'Cancelado', 'Finalizado'])->default('Programado'); 
         $table->timestamps();
 
         // Declaración de Llaves Foráneas
         $table->foreign('id_organizador')->references('id_usuario')->on('usuarios');
         $table->foreign('id_categoria')->references('id_categoria')->on('categorias');
+        $table->foreign('id_sede')->references('id_sede')->on('sedes');
     });
     }
 

@@ -16,8 +16,8 @@ return new class extends Migration
         $table->unsignedBigInteger('id_participante');
         $table->unsignedBigInteger('id_evento');
         $table->dateTime('fecha_inscripcion')->useCurrent();
-        $table->string('estado_inscripcion'); // Ej: Activa, Cancelada
-        $table->boolean('asistencia_confirmada')->default(false);
+        $table->enum('estado_inscripcion', ['Activa', 'Cancelada'])->default('Activa');
+        $table->enum('estado_asistencia', ['Confirmada', 'Ausente', 'Pendiente'])->default('Pendiente');
         $table->timestamps();
 
         // Declaración de Llaves Foráneas
