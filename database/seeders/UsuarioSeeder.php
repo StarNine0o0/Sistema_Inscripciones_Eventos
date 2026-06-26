@@ -18,7 +18,7 @@ class UsuarioSeeder extends Seeder
                 'correo_institucional' => 'admin@uni.edu.mx',
                 'contrasena' => Hash::make('admin123'),
                 'matricula_empleado' => 'ADMIN-001',
-                'estado_cuenta' => 'activo',
+                'estado_usuario' => 'activo',
                 'foto_perfil' => null,
             ],
         ]);
