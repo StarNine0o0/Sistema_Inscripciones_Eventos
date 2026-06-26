@@ -43,4 +43,41 @@ class AuthController extends Controller
             'usuario' => $usuario->load('rol')
         ], 200);
     }
+    public function register(Request $request)
+    {
+     
+        $request->validate([
+            //datos de entra da 
+            'nombre_completo' => 'required|string|max:255',
+            'correo_institucional' => 'required|email|unique:usuarios,correo_institucional',
+            'contrasena' => 'required|string|min:6',
+            'matricula_empleado' => 'required|string|unique:usuarios,matricula_empleado' 
+        ]);
+
+        //crear el nuevo usuario 
+        $usuario = Usuario::create([
+            'id_rol' => 3,
+            'nombre_completo' => $request->nombre_completo,
+            'correo_institucional' => $request->correo_institucional,
+            'contrasena' => Hash::make($request->contrasena), 
+            'matricula_empleado' => $request->matricula_empleado,
+            'estado_usuario' => 'Activo' 
+        ]);
+
+        // generar un token para que el usuario inicie sesión automáticamente al registrarse
+        $token = $usuario->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'mensaje' => 'Usuario registrado exitosamente',
+            'token' => $token,
+            'usuario' => $usuario->load('rol')
+        ], 201);
+    }    
+
+
+
+
+
+
+
 }
