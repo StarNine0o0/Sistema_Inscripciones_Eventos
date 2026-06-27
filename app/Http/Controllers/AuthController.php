@@ -72,8 +72,18 @@ class AuthController extends Controller
             'token' => $token,
             'usuario' => $usuario->load('rol')
         ], 201);
-    }    
+    }
+    
+    
+    public function logout(Request $request)
+    {
+        // Revocar el token del usuario autenticado
+        $request->user()->currentAccessToken()->delete();
 
+        return response()->json([
+            'mensaje' => 'Cierre de sesión exitoso'
+        ], 200);
+    }
 
 
 

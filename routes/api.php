@@ -10,4 +10,9 @@ Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // Aqui van las otras rutas protegidas solo para el admin etc
+    
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+
+
 });
