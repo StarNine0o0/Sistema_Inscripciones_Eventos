@@ -6,7 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UsuarioController;
 
 // Rutas publicas 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'loginApi']);
 Route::post('/register', [AuthController::class, 'register']);
 
 // Rutas para cualquier usuario autenticado

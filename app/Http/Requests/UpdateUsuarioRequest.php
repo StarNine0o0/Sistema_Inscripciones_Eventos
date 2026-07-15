@@ -4,6 +4,9 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
 
 class UpdateUsuarioRequest extends FormRequest
 {
@@ -31,4 +34,27 @@ class UpdateUsuarioRequest extends FormRequest
             'id_rol' => 'required|integer|exists:roles,id_rol'
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'correo_institucional.unique' => 'Este correo ya está registrado en el sistema.',
+            'matricula_empleado.unique' => 'Esta matrícula ya pertenece a otro usuario.',
+            'id_rol.exists' => 'El rol seleccionado no es válido.'
+        ];
+    }
+
+
+    protected function failedValidation(Validator $validator)
+    {
+        
+        throw new HttpResponseException(response()->json([
+            'mensaje' => 'Error de validación',
+            'errores' => $validator->errors()
+        ], 422));
+    }
+
+
+
+
 }

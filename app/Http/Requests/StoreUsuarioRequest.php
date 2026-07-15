@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class StoreUsuarioRequest extends FormRequest
 {
@@ -39,6 +41,16 @@ class StoreUsuarioRequest extends FormRequest
             'id_rol.exists' => 'El rol seleccionado no es válido.'
         ];
     }
+
+    protected function failedValidation(Validator $validator)
+    {
+        
+        throw new HttpResponseException(response()->json([
+            'mensaje' => 'Error de validación',
+            'errores' => $validator->errors()
+        ], 422));
+    }
+
 
 
 }

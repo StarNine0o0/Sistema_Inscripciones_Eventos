@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    public function loginApi(Request $request)
     {
         //Validar que nos envíen los datos requeridos
         $request->validate([
@@ -84,6 +85,33 @@ class AuthController extends Controller
             'mensaje' => 'Cierre de sesión exitoso'
         ], 200);
     }
+
+    // Este es nuevo, para tu web (usa Sesiones)
+public function loginWeb(Request $request)
+{
+    $request->validate([
+        'correo_institucional' => 'required|email',
+        'contrasena' => 'required'
+    ]);
+
+    $usuario = Usuario::where('correo_institucional', $request->correo_institucional)->first();
+
+    // DEPURACIÓN: Vamos a ver qué está fallando
+    if (!$usuario) {
+        dd('Usuario no encontrado en la BD con ese correo');
+    }
+    
+    if (!Hash::check($request->contrasena, $usuario->contrasena)) {
+        dd('La contraseña no coincide. El hash en BD es: ' . $usuario->contrasena);
+    }
+
+    if ($usuario->estado_usuario !== 'Activo') {
+        dd('El usuario existe, pero su estado es: ' . $usuario->estado_usuario);
+    }
+
+    Auth::login($usuario);
+    return redirect()->intended('/usuarios/' . $usuario->id_usuario);
+}
 
 
 
