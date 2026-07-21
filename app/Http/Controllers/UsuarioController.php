@@ -43,7 +43,7 @@ class UsuarioController extends Controller
         try {
             $resultado = $this->usuariosRepository->obtenerUsuario($id);
             
-            // Si el repositorio devolvió un error JSON (ej. 404 no encontrado), lo regresamos
+            // Si el repositorio devolbió un error JSON (ej. 404 no encontrado)
             if ($resultado instanceof \Illuminate\Http\JsonResponse) {
                 return $resultado;
             }

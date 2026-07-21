@@ -3,87 +3,170 @@
 namespace App\Http\Controllers\Repositories;
 
 use App\Models\Evento;
+use Illuminate\Support\Facades\Storage;
 
 class EventosRepository
 {
-    public function obtenerEventos()
+    public function obtenerEventos($filtros = [])
     {
         try {
-            $eventos = Evento::all();
+            $query = Evento::query();
+
+            // Filtro isset solo para evitar errores si no se envía el filtro, osea si el usuario no envía el filtro, no se aplica
+            if (isset($filtros['id_categoria'])) {
+                $query->where('id_categoria', $filtros['id_categoria']);
+            }
+
+            // Filtro por estado (borrador, publicado, cancelado, finalizado)
+            if (isset($filtros['estado_evento'])) {
+                $query->where('estado_evento', $filtros['estado_evento']);
+            }
+
+            // Filtro por fecha de inicio, si se envía, se obtienen los eventos que inician a partir de esa fecha
+            if (isset($filtros['fecha_inicio'])) {
+                $query->whereDate('fecha_inicio', '>=', $filtros['fecha_inicio']);
+            }
+
+            // Cargamos al relacion con categoría y el conteo de inscritos
+            $eventos = $query->with('categoria')->withCount('inscripciones')->get();
+
             return [
                 "mensaje" => "Eventos obtenidos correctamente",
                 "eventos" => $eventos
             ];
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener los eventos: ' . $e->getMessage()], 500);
+            throw new \Exception('Error al obtener eventos: ' . $e->getMessage(),500);
         }
     }
 
-    public function registrarEvento(array $data)
+    public function registrarEvento(array $data, $imagen = null)
     {
         try {
+            $rutaImagen = null;
+            
+            // Lógica para guardar la imagen si se envía
+            if ($imagen) {
+                $rutaImagen = $imagen->store('portadas_eventos', 'public');
+            }
+
             $evento = Evento::create([
-                'nombre_evento' => $data['nombre_evento'],
-                'descripcion'   => $data['descripcion'],
-                'fecha'         => $data['fecha'],
-                'cupo_maximo'   => $data['cupo_maximo'],
+            'nombre_evento'    => $data['nombre_evento'],
+            'descripcion'      => $data['descripcion'],
+            'id_categoria'     => $data['id_categoria'],
+            'id_organizador'   => $data['id_organizador'],
+            'id_sede'          => $data['id_sede'],
+            'fecha_inicio'     => $data['fecha_inicio'],
+            'fecha_fin'        => $data['fecha_fin'],
+            'capacidad_maxima' => $data['capacidad_maxima'],
+            'imagen_portada'   => $rutaImagen,
+            'estado_evento'    => 'Programado'
             ]);
 
             return $evento;
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al registrar el evento: ' . $e->getMessage()], 500);
+            throw new \Exception('Error al registrar el evento: ' . $e->getMessage(), 500);
         }
     }
 
     public function obtenerEvento(int $id)
     {
         try {
-            $evento = Evento::find($id);
+            // Cargamos la relación con categoría y la ruta completa hacia el participante y contamos tambien las inscripciones
+            $evento = Evento::with(['categoria', 'inscripciones.participante'])
+                            ->withCount('inscripciones')
+                            ->find($id);
+            
             if (!$evento) {
-                return response()->json(['error' => 'Evento no encontrado'], 404);
+                throw new \Exception('Evento no encontrado', 404);
             }
+            
             return [
                 "mensaje" => "Evento obtenido correctamente",
                 "evento" => $evento
             ];
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener el evento: ' . $e->getMessage()], 500);
+            throw new \Exception('Error al obtener el evento: ' . $e->getMessage(), 500);
         }
     }
 
-    public function actualizarEvento(int $id, array $data)
+    public function actualizarEvento(int $id, array $data, $imagen = null)
     {
         try {
-            $evento = $this->obtenerEvento($id)['evento'];
-            
+            $evento = Evento::findOrFail($id);
+
+            // Lógica para actualizar la imagen si se envía una nueva
+            if ($imagen) {
+                // Eliminar las imgen anterior si existe
+                if ($evento->imagen_portada) {
+                    Storage::disk('public')->delete($evento->imagen_portada);
+                }
+                $rutaImagen = $imagen->store('portadas_eventos', 'public');
+                $data['imagen_portada'] = $rutaImagen;
+            }
+
             $evento->update([
-                'nombre_evento' => $data['nombre_evento'] ?? $evento->nombre_evento,
-                'descripcion'   => $data['descripcion'] ?? $evento->descripcion,
-                'fecha'         => $data['fecha'] ?? $evento->fecha,
-                'cupo_maximo'   => $data['cupo_maximo'] ?? $evento->cupo_maximo,
+                'nombre_evento'    => $data['nombre_evento'] ?? $evento->nombre_evento,
+                'descripcion'      => $data['descripcion'] ?? $evento->descripciaon,
+                'id_categoria'     => $data['id_categoria'] ?? $evento->id_categoria,
+                'id_organizador'   => $data['id_organizador'] ?? $evento->id_organizador,
+                'id_sede'          => $data['id_sede'] ?? $evento->id_sede,
+                'fecha_inicio'     => $data['fecha_inicio'] ?? $evento->fecha_inicio,
+                'fecha_fin'        => $data['fecha_fin'] ?? $evento->fecha_fin,
+                'capacidad_maxima' => $data['capacidad_maxima'] ?? $evento->capacidad_maxima,
+                'imagen_portada'   => $data['imagen_portada'] ?? $evento->imagen_portada
+
             ]);
 
             return [
-                "meta" => "Evento actualizado correctamente",
+                "mensaje" => "Evento actualizado correctamente",
                 "evento" => $evento
             ];
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al actualizar el evento: ' . $e->getMessage()], 500);
+            throw new \Exception('Error al actualizar el evento: ' . $e->getMessage(), 500);
         }
     }
 
-    public function eliminarEvento(int $id)
+
+public function eliminarEvento(int $id)
     {
         try {
-            // Aquí puedes aplicar tu lógica de cambio de estado si lo prefieres
-            $evento = $this->obtenerEvento($id)['evento'];
-            $evento->delete(); 
-            
+            $evento = Evento::findOrFail($id);
+
+            // Eliminar la imagen si existe
+            if ($evento->imagen_portada) {
+                Storage::disk('public')->delete($evento->imagen_portada);
+            }
+
+            $evento->delete();
+
             return [
                 "mensaje" => "Evento eliminado correctamente"
             ];
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al eliminar el evento: ' . $e->getMessage()], 500);
+            throw new \Exception('Error al eliminar el evento: ' . $e->getMessage(), 500);
         }
     }
+
+    
+    public function cambiarEstado(int $id, string $nuevoEstado)
+    {
+            $estadosPermitidos = ['Programado', 'En curso', 'Cancelado', 'Finalizado'];
+
+            //verificamos si el estado dentro del array de estados permitidos, si no es así, devolvemos un error con implode para mostrar los estados permitidos
+            if (!in_array($nuevoEstado, $estadosPermitidos)) {
+                throw new \Exception('Estado no permitido, los estados permitidos son: ' . implode(', ', $estadosPermitidos), 422);
+            }
+            try {
+            $evento = Evento::findOrFail($id);
+            $evento->update(['estado_evento' => $nuevoEstado]);
+
+            return [
+                "mensaje" => "El estado del evento ha cambiado a " . $nuevoEstado,
+                "evento" => $evento
+            ];
+        } catch (\Exception $e) {
+            throw new \Exception('Error al cambiar el estado: ' . $e->getMessage(), 500);
+        }
+    }
+    
 }
