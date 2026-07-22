@@ -22,7 +22,7 @@ return new class extends Migration
         $table->dateTime('fecha_fin');
         $table->integer('capacidad_maxima');
         $table->string('imagen_portada')->nullable();
-        $table->enum('estado_evento', ['Programado', 'En Curso', 'Cancelado', 'Finalizado'])->default('Programado'); 
+        $table->enum('estado_evento', ['Borrador', 'Publicado', 'Cancelado', 'Finalizado'])->default('Borrador');
         $table->timestamps();
 
         // Declaración de Llaves Foráneas

@@ -107,11 +107,12 @@ class EventosWebController extends Controller
 
         try {
             $resultado = $this->eventosRepository->cambiarEstado($id, $request->estado_evento);
-            
             return response()->json($resultado, 200);
+
         } catch (\Exception $e) {
-            $codigo = $e->getCode() ?: 500;
+            $codigo = $e->getCode() == 404 ? 404 : 422; // si el evento no se encuentra, devolvemos 404, si es otro error devolvemos 422
             return response()->json(['error' => $e->getMessage()], $codigo);
+          
         }
     }
 

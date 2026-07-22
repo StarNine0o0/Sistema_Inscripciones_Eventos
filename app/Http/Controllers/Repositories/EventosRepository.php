@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Repositories;
 
 use App\Models\Evento;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class EventosRepository
 {
@@ -28,7 +30,7 @@ class EventosRepository
             }
 
             // Cargamos al relacion con categoría y el conteo de inscritos
-            $eventos = $query->with('categoria')->withCount('inscripciones')->get();
+            $eventos = $query->with('categoria')->withCount('inscripciones')->orderBy('fecha_inicio', 'asc')->paginate(10);
 
             return [
                 "mensaje" => "Eventos obtenidos correctamente",
@@ -59,7 +61,7 @@ class EventosRepository
             'fecha_fin'        => $data['fecha_fin'],
             'capacidad_maxima' => $data['capacidad_maxima'],
             'imagen_portada'   => $rutaImagen,
-            'estado_evento'    => 'Programado'
+            'estado_evento'    => 'Borrador' // Por defecto, el evento se crea como borrador
             ]);
 
             return $evento;
@@ -147,26 +149,34 @@ public function eliminarEvento(int $id)
         }
     }
 
-    
     public function cambiarEstado(int $id, string $nuevoEstado)
-    {
-            $estadosPermitidos = ['Programado', 'En curso', 'Cancelado', 'Finalizado'];
+{
+    $estadosPermitidos = ['Borrador', 'Publicado', 'Cancelado', 'Finalizado'];
 
-            //verificamos si el estado dentro del array de estados permitidos, si no es así, devolvemos un error con implode para mostrar los estados permitidos
-            if (!in_array($nuevoEstado, $estadosPermitidos)) {
-                throw new \Exception('Estado no permitido, los estados permitidos son: ' . implode(', ', $estadosPermitidos), 422);
-            }
-            try {
-            $evento = Evento::findOrFail($id);
-            $evento->update(['estado_evento' => $nuevoEstado]);
+    //in_array, para que no se pueda cambiar a un estado no permitido
+    if (!in_array($nuevoEstado, $estadosPermitidos)) {
+        throw new \Exception('Estado no permitido, los estados permitidos son: ' . implode(', ', $estadosPermitidos), 422);
+    }
 
-            return [
-                "mensaje" => "El estado del evento ha cambiado a " . $nuevoEstado,
-                "evento" => $evento
-            ];
-        } catch (\Exception $e) {
-            throw new \Exception('Error al cambiar el estado: ' . $e->getMessage(), 500);
+    $evento = Evento::findOrFail($id);
+
+    if ($nuevoEstado === 'Publicado') {
+        //convertimos la feha en un objeto carbon para poder comparar si la fecha de inicio ya pasó, si es así no se puede modificar a publicado 
+        if (Carbon::parse($evento->fecha_inicio)->isPast()) {// si la fecha de inicio ya pasó, no se puede cambiar a publicado
+            throw new \Exception('No puedes publicar un evento cuya fecha de inicio ya pasó.', 422);
         }
     }
+
+    try {
+        $evento->update(['estado_evento' => $nuevoEstado]);
+
+        return [
+            "mensaje" => "El estado del evento ha cambiado a " . $nuevoEstado,
+            "evento" => $evento
+        ];
+    } catch (\Exception $e) {
+        throw new \Exception('Error al actualizar la base de datos: ' . $e->getMessage(), 500);
+    }
+}
     
 }

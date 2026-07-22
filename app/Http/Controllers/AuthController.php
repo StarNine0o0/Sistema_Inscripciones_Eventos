@@ -88,30 +88,38 @@ class AuthController extends Controller
 
     // Este es nuevo, para tu web (usa Sesiones)
 public function loginWeb(Request $request)
-{
-    $request->validate([
-        'correo_institucional' => 'required|email',
-        'contrasena' => 'required'
-    ]);
+    {
+        $request->validate([
+            'correo_institucional' => 'required|email',
+            'contrasena' => 'required'
+        ]);
 
-    $usuario = Usuario::where('correo_institucional', $request->correo_institucional)->first();
+        $usuario = Usuario::where('correo_institucional', $request->correo_institucional)->first();
 
-    // DEPURACIÓN: Vamos a ver qué está fallando
-    if (!$usuario) {
-        dd('Usuario no encontrado en la BD con ese correo');
+  
+        if (!$usuario || !Hash::check($request->contrasena, $usuario->contrasena)) {
+            return back()->withErrors([
+                'correo_institucional' => 'Las credenciales proporcionadas son incorrectas.',
+            ]);
+        }
+
+        if ($usuario->estado_usuario !== 'Activo') {
+            return back()->withErrors([
+                'correo_institucional' => 'Esta cuenta de usuario no está activa.',
+            ]);
+        }
+
+        // Si todo está correcto, iniciamos sesión
+        Auth::login($usuario);
+        
+        // Buena práctica de seguridad en Laravel: regenerar la sesión
+        $request->session()->regenerate();
+
+        // ¡AQUÍ ESTÁ LA CORRECCIÓN! 
+        // Si intentó entrar a una URL protegida, lo regresa ahí. 
+        // Si entró directo por /login, lo manda por defecto a /eventos
+        return redirect()->intended('/eventos'); 
     }
-    
-    if (!Hash::check($request->contrasena, $usuario->contrasena)) {
-        dd('La contraseña no coincide. El hash en BD es: ' . $usuario->contrasena);
-    }
-
-    if ($usuario->estado_usuario !== 'Activo') {
-        dd('El usuario existe, pero su estado es: ' . $usuario->estado_usuario);
-    }
-
-    Auth::login($usuario);
-    return redirect()->intended('/usuarios/' . $usuario->id_usuario);
-}
 
 
 

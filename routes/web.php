@@ -5,6 +5,7 @@ use App\Http\Controllers\UsuarioController;
 use Inertia\Inertia;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventosWebController;
+use App\Http\Controllers\CategoriasWebController;
 
 
 Route::get('/login', function () {
@@ -32,5 +33,14 @@ Route::get('/eventos', [EventosWebController::class, 'index']);
     Route::put('/eventos/{id}', [EventosWebController::class, 'update']);// usar modal para editar evento
     Route::delete('/eventos/{id}', [EventosWebController::class, 'destroy']);
     Route::put('/eventos/{id}/estado', [EventosWebController::class, 'cambiarEstado']);
+
+    // rutas de categorías
+    
+    Route::get('/categorias', [CategoriasWebController::class, 'index']);
+    Route::post('/categorias', [CategoriasWebController::class, 'store']);
+    Route::put('/categorias/{id}', [CategoriasWebController::class, 'update']);
+    Route::delete('/categorias/{id}', [CategoriasWebController::class, 'destroy']);
+    
+
 
  });
