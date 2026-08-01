@@ -14,7 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'admin' => \App\Http\Middleware\CheckAdminRole::class
+            'admin' => \App\Http\Middleware\CheckAdminRole::class,
+            'organizador' => \App\Http\Middleware\CheckOrganizerRole::class,
         ]);
 
         // Registramos Inertia en la pila 'web'

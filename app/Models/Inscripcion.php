@@ -3,6 +3,7 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Inscripcion extends Model
 {
@@ -13,10 +14,33 @@ class Inscripcion extends Model
     protected $fillable = [
         'id_evento',
         'id_participante',
+        'codigo_confirmacion',
         'fecha_inscripcion',
         'estado_inscripcion',
-        'asistencia_confirmada',
+        'estado_asistencia',
+        'fecha_checkin',
     ];
+
+
+    protected $casts = [
+        'fecha_inscripcion' => 'datetime',
+        'fecha_checkin'     => 'datetime',
+    ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function (Inscripcion $inscripcion) {
+            if (empty($inscripcion->codigo_confirmacion)) {
+                do {
+                    $codigo = strtoupper(Str::random(8));
+                } while (self::where('codigo_confirmacion', $codigo)->exists());
+
+                $inscripcion->codigo_confirmacion = $codigo;
+            }
+        });
+    }
 
     // Relación con el evento, una inscripción pertenece a un evento
     public function evento()
