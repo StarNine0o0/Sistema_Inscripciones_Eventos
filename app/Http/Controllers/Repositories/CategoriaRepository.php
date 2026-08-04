@@ -53,13 +53,20 @@ class CategoriaRepository
 
     public function eliminarCategoria(int $id)
     {
-        try {
+       try {
             $categoria = Categoria::findOrFail($id);
+            
+            if ($categoria->eventos()->count() > 0) {
+                throw new \Exception('No se puede eliminar porque hay eventos usando esta categoría.', 422);
+            }
+            
             $categoria->delete();
             return [
                 "mensaje" => "Categoría eliminada correctamente"
             ];
         } catch (\Exception $e) {
+            //respetams el cofigo de error si ya viene con uno como un 422, o si no, le ponemos 500
+            $codigo = $e->getCode() ?: 500;
             throw new \Exception('Error al eliminar categoría: ' . $e->getMessage(),500);
         }
     }
