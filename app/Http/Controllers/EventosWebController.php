@@ -7,6 +7,9 @@ use App\Http\Controllers\Repositories\EventosRepository;
 use App\Http\Requests\StoreEventoRequest;
 use App\Http\Requests\UpdateEventosRequest; 
 use Inertia\Inertia;
+use App\Models\Sede;
+use App\Models\Categoria;
+use Illuminate\Support\Facades\Auth;
 
 class EventosWebController extends Controller
 {
@@ -22,9 +25,15 @@ class EventosWebController extends Controller
     {
         try {
             $resultado = $this->eventosRepository->obtenerEventos($request->all());
+            $sedes = Sede::all(); 
+            $categorias = Categoria::all(); 
+            
             
             return Inertia::render('Eventos/Index', [
-                'eventos' => $resultado['eventos'] // Mandamos el arreglo al React
+                'eventos' => $resultado['eventos'],
+                'sedes' => $sedes,
+                'categorias' => $categorias,
+
             ]);
         } catch (\Exception $e) {
             abort(500, 'Error al cargar el panel de los eventos: ' . $e->getMessage());
@@ -53,16 +62,19 @@ class EventosWebController extends Controller
     public function store(StoreEventoRequest $request)
     {
         try {
+            $datos = $request->validated();
+            $datos['id_organizador']= Auth::id();
+
             $evento = $this->eventosRepository->registrarEvento(
-                $request->all(), 
+                $datos,
                 $request->file('imagen_portada')
             );
-
             return response()->json([
-                "mensaje" => "Evento registrado correctamente",
+                "mensaje" => "Evento registrasd exitosamente",
                 "evento" => $evento
-            ], 201);
-            
+
+            ],201);
+           
             
         } catch (\Exception $e) {// le pasamos el código de error 404 si el evento no se encuentra, o 500 si hay otro error manejandolo con el repository para que react no piense que es otro error 
             $codigo = $e->getCode() ?: 500;

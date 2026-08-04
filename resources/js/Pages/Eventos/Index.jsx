@@ -2,19 +2,19 @@ import React, { useState } from 'react';
 import { router, Link } from '@inertiajs/react';
 import axios from 'axios';
 
-export default function Index({ eventos, filtros }) {
+export default function Index({ eventos,sedes,categorias, filtros }) {
     // Estados para el formulario de crear
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [erroresBackend, setErroresBackend] = useState(null);
     const [formData, setFormData] = useState({
-        nombre_evento: '', // ¡Corregido! (antes era 'titulo')
+        nombre_evento: '',
         descripcion: '',
         fecha_inicio: '',
         fecha_fin: '',
         capacidad_maxima: '',
-        id_categoria: '1', 
-        id_organizador: '1', // ¡Nuevo campo obligatorio!
-        id_sede: '1',        // ¡Nuevo campo obligatorio!
+        id_categoria: '', 
+        id_organizador: '1', 
+        id_sede: '',        
         imagen_portada: null
     });
     // 1. Función para guardar un nuevo evento (Prueba el store)
@@ -25,7 +25,10 @@ export default function Index({ eventos, filtros }) {
         // Como enviamos una imagen, usamos FormData
         const data = new FormData();
         for (const key in formData) {
-            data.append(key, formData[key]);
+
+            if(formData[key] !== null && formData[key] !== '') {
+                data.append(key, formData[key]);
+            }
         }
 
         try {
@@ -141,6 +144,42 @@ export default function Index({ eventos, filtros }) {
                             
                             <label>Imagen (Opcional):</label>
                             <input type="file" onChange={e => setFormData({...formData, imagen_portada: e.target.files[0]})} />
+
+                            {/* Select para la Sede */}
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px' }}>Sede:</label>
+                                <select 
+                                    value={formData.id_sede} 
+                                    onChange={e => setFormData({...formData, id_sede: e.target.value})}
+                                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                                    required
+                                >
+                                    <option value="">-- Selecciona una Sede --</option>
+                                    {sedes && sedes.map(sede => (
+                                        <option key={sede.id_sede} value={sede.id_sede}>
+                                            {sede.nombre_sede}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Select para la Categoría */}
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px' }}>Categoría:</label>
+                                <select 
+                                    value={formData.id_categoria} 
+                                    onChange={e => setFormData({...formData, id_categoria: e.target.value})}
+                                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                                    required
+                                >
+                                    <option value="">-- Selecciona una Categoría --</option>
+                                    {categorias && categorias.map(categoria => (
+                                        <option key={categoria.id_categoria} value={categoria.id_categoria}>
+                                            {categoria.nombre_categoria}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             
                             <button type="submit" style={{ padding: '10px', background: '#10b981', color: 'white', border: 'none', cursor: 'pointer' }}>Guardar Evento</button>
                         </form>
@@ -177,17 +216,17 @@ export default function Index({ eventos, filtros }) {
                                         <td>
                                             {/* Botón para probar la validación de fechas */}
                                             {evento.estado_evento === 'Borrador' && (
-                                                <button onClick={() => handleCambiarEstado(id_evento, 'Publicado')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer' }}>
+                                                <button onClick={() => handleCambiarEstado(evento.id_evento, 'Publicado')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer' }}>
                                                     Publicar
                                                 </button>
                                             )}
                                             {evento.estado_evento === 'Publicado' && (
-                                                <button onClick={() => handleCambiarEstado(id_evento, 'Cancelado')} style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer' }}>
+                                                <button onClick={() => handleCambiarEstado(evento.id_evento, 'Cancelado')} style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer' }}>
                                                     Cancelar
                                                 </button>
                                             )}
                                             
-                                            <button onClick={() => handleEliminar(id_evento)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer' }}>
+                                            <button onClick={() => handleEliminar(evento.id_evento)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer' }}>
                                                 Eliminar
                                             </button>
                                         </td>

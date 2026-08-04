@@ -15,22 +15,30 @@ class EventosRepository
             $query = Evento::query();
 
             // Filtro isset solo para evitar errores si no se envía el filtro, osea si el usuario no envía el filtro, no se aplica
-            if (isset($filtros['id_categoria'])) {
-                $query->where('id_categoria', $filtros['id_categoria']);
-            }
-
+            if (isset($filtros['id_categoria'])) {$query->where('id_categoria', $filtros['id_categoria']);}
+                
             // Filtro por estado (borrador, publicado, cancelado, finalizado)
-            if (isset($filtros['estado_evento'])) {
-                $query->where('estado_evento', $filtros['estado_evento']);
-            }
-
+            if (isset($filtros['estado_evento'])) { $query->where('estado_evento', $filtros['estado_evento']);}
+               
             // Filtro por fecha de inicio, si se envía, se obtienen los eventos que inician a partir de esa fecha
-            if (isset($filtros['fecha_inicio'])) {
-                $query->whereDate('fecha_inicio', '>=', $filtros['fecha_inicio']);
-            }
-
+            if (isset($filtros['fecha_inicio'])) {$query->whereDate('fecha_inicio', '>=', $filtros['fecha_inicio']);}
+                
             // Cargamos al relacion con categoría y el conteo de inscritos
             $eventos = $query->with('categoria')->withCount('inscripciones')->orderBy('fecha_inicio', 'asc')->paginate(10);
+
+            //mandamos la sede y el nombre del organizador 
+            $eventos = $query->with(['categoria', 'sede', 'organizador'])->withCount('inscripciones')->orderBy('fecha_inicio', 'asc')->paginate(10);   
+            
+
+                //getcollection, es un objeto que contiene los resultados de la consulta, y el transform es un método que permite modificar cada elemento del objeto, en este caso estamos modificando el estado_mostrar de cada evento, si el evento tiene más inscripciones que la capacidad máxima, se muestra como lleno, si no, se muestra el estado real del evento
+            $eventos->getCollection()->transform(function ($evento) {
+                if ($evento->inscripciones_count >= $evento->capacidad_maxima) {
+                    $evento->estado_mostrar = 'Lleno';
+                } else {
+                    $evento->estado_mostrar = $evento->estado_evento;
+                }
+                return $evento;
+            });
 
             return [
                 "mensaje" => "Eventos obtenidos correctamente",
@@ -61,7 +69,7 @@ class EventosRepository
             'fecha_fin'        => $data['fecha_fin'],
             'capacidad_maxima' => $data['capacidad_maxima'],
             'imagen_portada'   => $rutaImagen,
-            'estado_evento'    => 'Borrador' // Por defecto, el evento se crea como borrador
+            'estado_evento'    => 'Borrador' 
             ]);
 
             return $evento;
@@ -76,6 +84,7 @@ class EventosRepository
             // Cargamos la relación con categoría y la ruta completa hacia el participante y contamos tambien las inscripciones
             $evento = Evento::with(['categoria', 'inscripciones.participante'])
                             ->withCount('inscripciones')
+                            ->with(['sede', 'organizador'])
                             ->find($id);
             
             if (!$evento) {

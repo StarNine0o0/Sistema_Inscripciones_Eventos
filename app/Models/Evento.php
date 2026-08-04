@@ -44,4 +44,7 @@ class Evento extends Model
     {
         return $this->belongsTo(Sede::class, 'id_sede', 'id_sede');
     }
+
+
+
 }

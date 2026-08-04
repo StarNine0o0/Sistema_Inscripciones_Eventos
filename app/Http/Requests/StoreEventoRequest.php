@@ -32,7 +32,7 @@ class StoreEventoRequest extends FormRequest
             'capacidad_maxima' => 'required|integer|min:1',
             'imagen_portada' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:1024', // estoy entre este fotmato o el formato url
             'id_categoria' => 'required|integer|exists:categorias,id_categoria',
-            'id_organizador' => 'required|integer|exists:usuarios,id_usuario',
+           // 'id_organizador' => 'required|integer|exists:usuarios,id_usuario', descativado porque el id del organizador se obtiene del usuario autenticado
             'id_sede' => 'required|integer|exists:sedes,id_sede',
         ];
     }
