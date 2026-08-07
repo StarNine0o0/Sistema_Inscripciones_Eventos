@@ -14,7 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
+//<<<<<<< HEAD
             'role' => \App\Http\Middleware\CheckRole::class,
+//=======
+            'admin' => \App\Http\Middleware\CheckRole::class,
+            'organizador' => \App\Http\Middleware\CheckOrganizerRole::class,
+//>>>>>>> feature/modulo4-Gestion-Inscripciones
         ]);
 
         // Registramos Inertia en la pila 'web'
@@ -22,9 +27,6 @@ return Application::configure(basePath: dirname(__DIR__))
         \App\Http\Middleware\HandleInertiaRequests::class,
     ]);
     })
-
-   
-
     
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

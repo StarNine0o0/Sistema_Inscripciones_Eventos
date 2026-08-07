@@ -17,7 +17,7 @@ class UsuarioSeeder extends Seeder
                 'nombre_completo' => 'Administrador',
                 'contrasena' => Hash::make('admin123'),
                 'matricula_empleado' => 'ADMIN-001',
-                'estado_usuario' => 'activo',
+                'estado_usuario' => 'Activo',
                 'foto_perfil' => null,
             ]
         );

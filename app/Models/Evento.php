@@ -21,6 +21,12 @@ class Evento extends Model
         'estado_evento',
     ];
 
+    protected $casts = [
+        'fecha_inicio' => 'datetime',
+        'fecha_fin'    => 'datetime',
+    ];
+
+
     // Relación con la categoría, un evento pertenece a una categoría
     public function categoria()
     {
@@ -46,5 +52,25 @@ class Evento extends Model
     }
 
 
+
+    // Cuenta solo las inscripciones activas (no canceladas) del evento
+    public function inscritosActivos()
+    {
+        return $this->inscripciones()->where('estado_inscripcion', 'Activa')->count();
+    }
+
+    // Indica si el evento alcanzó su capacidad máxima
+    public function cupoLleno(): bool
+    {
+        return $this->inscritosActivos() >= $this->capacidad_maxima;
+    }
+
+    // Indica si la fecha actual está dentro del rango del evento (fecha_inicio - fecha_fin)
+    public function esFechaDelEvento(): bool
+    {
+        $hoy = now()->toDateString();
+        return $hoy >= $this->fecha_inicio->toDateString()
+            && $hoy <= $this->fecha_fin->toDateString();
+    }
 
 }
