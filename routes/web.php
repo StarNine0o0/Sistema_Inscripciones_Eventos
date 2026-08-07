@@ -6,6 +6,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventosWebController;
 use App\Http\Controllers\CategoriasWebController;
+use App\Http\Controllers\SedesWebController;
 
 
 Route::get('/login', function () {
@@ -18,7 +19,7 @@ Route::post('/login', [AuthController::class, 'loginWeb']);
 
 
 
-Route::middleware(['auth','role:admin'])->group(function () {
+Route::middleware(['auth','role:administrador'])->group(function () {
 
 // rutas de usuarios
 Route::get('/usuarios', [UsuarioController::class, 'index']);
@@ -32,7 +33,14 @@ Route::delete('/usuarios/{usuario}', [UsuarioController::class, 'destroy']);
     Route::post('/categorias', [CategoriasWebController::class, 'store']);
     Route::put('/categorias/{id}', [CategoriasWebController::class, 'update']);
     Route::delete('/categorias/{id}', [CategoriasWebController::class, 'destroy']);
+
+    // rutas de sedes
+    Route::get('/sedes', [SedesWebController::class, 'index']);
+    Route::post('/sedes', [SedesWebController::class, 'store']);
+    Route::put('/sedes/{id}', [SedesWebController::class, 'update']);
+    Route::delete('/sedes/{id}', [SedesWebController::class, 'destroy']);
     
+
 
 
  });

@@ -58,7 +58,7 @@ class EventosWebController extends Controller
 
 
 
-    // Mantenemos el store devolviendo JSOn para que el front pueda manejar la respuesta con fetch
+    // Manenemos el store devolviendo JSOn para que el front pueda manejar la respuesta con fetch
     public function store(StoreEventoRequest $request)
     {
         try {

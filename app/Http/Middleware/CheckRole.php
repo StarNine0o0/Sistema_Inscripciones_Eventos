@@ -22,7 +22,7 @@ class CheckRole
 
         //Mapamos los nombres de los roles con los IDs
         $roles = [
-            'admin'       => 1,
+            'administrador'       => 1,
             'organizador' => 2,
         ];
 

@@ -86,7 +86,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // Este es nuevo, para tu web (usa Sesiones)
+
 public function loginWeb(Request $request)
     {
         $request->validate([
@@ -108,16 +108,10 @@ public function loginWeb(Request $request)
                 'correo_institucional' => 'Esta cuenta de usuario no está activa.',
             ]);
         }
-
-        // Si todo está correcto, iniciamos sesión
         Auth::login($usuario);
         
-        // Buena práctica de seguridad en Laravel: regenerar la sesión
         $request->session()->regenerate();
 
-        // ¡AQUÍ ESTÁ LA CORRECCIÓN! 
-        // Si intentó entrar a una URL protegida, lo regresa ahí. 
-        // Si entró directo por /login, lo manda por defecto a /eventos
         return redirect()->intended('/eventos'); 
     }
 
