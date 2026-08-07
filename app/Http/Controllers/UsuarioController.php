@@ -21,19 +21,23 @@ class UsuarioController extends Controller
     {
         try {
             $resultado = $this->usuariosRepository->obtenerUsuarios();
-            return response()->json($resultado, 200);
+            
+            return Inertia::render('Usuarios/Index', [
+                'usuarios' => $resultado['usuarios']
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener usuarios: ' . $e->getMessage()], 500);
+            abort(500, 'Error al cargar el panel de usuarios: ' . $e->getMessage());
         }
     }
 
     public function store(StoreUsuarioRequest $request)
     {
-        try {
-            $usuario = $this->usuariosRepository->registrarUsuario($request->all());
-            return response()->json($usuario, 201);
+       try {
+            $this->usuariosRepository->registrarUsuario($request->validated());
+            
+            return redirect()->back()->with('success', 'Usuario registrado con éxito.');
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al registrar: ' . $e->getMessage()], 500);
+            return redirect()->back()->withErrors(['error' => 'Error al registrar: ' . $e->getMessage()]);
         }
     }
 
@@ -42,37 +46,34 @@ class UsuarioController extends Controller
     {
         try {
             $resultado = $this->usuariosRepository->obtenerUsuario($id);
-            
-            // Si el repositorio devolbió un error JSON (ej. 404 no encontrado)
-            if ($resultado instanceof \Illuminate\Http\JsonResponse) {
-                return $resultado;
-            }
-
+        
             return Inertia::render('Usuarios/Perfil', [
                 'usuario_perfil' => $resultado['usuario']
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al mostrar el perfil: ' . $e->getMessage()], 500);
+            abort(500, 'Error al mostrar el perfil: ' . $e->getMessage());
         }
     }
 
     public function update(UpdateUsuarioRequest $request, int $id)
     {
-        try {
-            $resultado = $this->usuariosRepository->actualizarUsuario($id, $request->all());
-            return response()->json($resultado, 200);
+       try {
+            $this->usuariosRepository->actualizarUsuario($id, $request->validated());
+            
+            return redirect()->back()->with('success', 'Usuario actualizado correctamente.');
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al actualizar: ' . $e->getMessage()], 500);
+            return redirect()->back()->withErrors(['error' => 'Error al actualizar: ' . $e->getMessage()]);
         }
     }
 
     public function destroy(int $id)
     {
-        try {
-            $resultado = $this->usuariosRepository->eliminarUsuario($id);
-            return response()->json($resultado, 200);
+       try {
+            $this->usuariosRepository->eliminarUsuario($id);
+            
+            return redirect()->back()->with('success', 'Usuario desactivado correctamente.');
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al eliminar: ' . $e->getMessage()], 500);
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 }

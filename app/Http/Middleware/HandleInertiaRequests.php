@@ -42,9 +42,10 @@ public function rootView(Request $request): string
      */
     public function share(Request $request): array
     {
-        return [
-            ...parent::share($request),
-            //
-        ];
+        return array_merge(parent::share($request), [
+            'auth' => [
+                'user' => $request->user() ? $request->user()->only('id', 'nombre', 'id_rol', 'correo_institucional') : null,
+            ],
+        ]);
     }
 }

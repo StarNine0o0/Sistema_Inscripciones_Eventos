@@ -10,7 +10,7 @@ use App\Http\Controllers\SedesWebController;
 
 
 Route::get('/login', function () {
-    return Inertia::render('Login');
+    return Inertia::render('Login/Login');
 })->name('login');
 
 
@@ -26,6 +26,8 @@ Route::get('/usuarios', [UsuarioController::class, 'index']);
 Route::get('/usuarios/{usuario}', [UsuarioController::class, 'show']);
 Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update']);
 Route::delete('/usuarios/{usuario}', [UsuarioController::class, 'destroy']);
+Route::post('/usuarios', [UsuarioController::class, 'store']);
+
 
 
     // rutas de categorías

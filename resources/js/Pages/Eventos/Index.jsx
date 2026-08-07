@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { router, Link } from '@inertiajs/react';
+import { router, Link, usePage } from '@inertiajs/react'; // IMPORTANTE: Agregamos usePage
 import axios from 'axios';
 
-export default function Index({ eventos,sedes,categorias, filtros }) {
+export default function Index({ eventos, sedes, categorias, filtros }) {
+    // 1. Extraemos al usuario logeado usando Inertia
+    const { auth } = usePage().props;
+    const usuario = auth?.user || {};
+
     // Estados para el formulario de crear
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [erroresBackend, setErroresBackend] = useState(null);
@@ -13,64 +17,57 @@ export default function Index({ eventos,sedes,categorias, filtros }) {
         fecha_fin: '',
         capacidad_maxima: '',
         id_categoria: '', 
-        id_organizador: '1', 
+        id_organizador: usuario.id, // Opcional: autocompletar el organizador con el usuario actual
         id_sede: '',        
         imagen_portada: null
     });
-    // 1. Función para guardar un nuevo evento (Prueba el store)
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErroresBackend(null);
 
-        // Como enviamos una imagen, usamos FormData
         const data = new FormData();
         for (const key in formData) {
-
             if(formData[key] !== null && formData[key] !== '') {
                 data.append(key, formData[key]);
             }
         }
 
         try {
-            // Hacemos la petición a tu EventosWebController@store
             const response = await axios.post('/eventos', data, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             
-            alert(response.data.mensaje); // "Evento registrado correctamente"
+            alert(response.data.mensaje);
             setMostrarFormulario(false);
-            router.reload(); // Recarga la tabla de Inertia
+            router.reload(); 
             
         } catch (error) {
             if (error.response && error.response.data.error) {
                 setErroresBackend(error.response.data.error);
             } else if (error.response && error.response.data.errors) {
-                // Esto extrae los errores de validación y los une en un solo texto
                 const mensajesErrores = Object.values(error.response.data.errors).flat().join(' | ');
                 setErroresBackend("Faltan datos: " + mensajesErrores);
             }
         }
     };
 
-    // 2. Función para cambiar el estado (Prueba la validación de fechas)
     const handleCambiarEstado = async (id, nuevoEstado) => {
         try {
-            // Hacemos la petición a tu EventosWebController@cambiarEstado
             const response = await axios.put(`/eventos/${id}/estado`, {
                 estado_evento: nuevoEstado
             });
             
             alert(response.data.mensaje);
-            router.reload(); // Recarga la tabla
+            router.reload(); 
             
         } catch (error) {
             if (error.response && error.response.data.error) {
-                alert("ERROR BACKEND: " + error.response.data.error); // Aquí saldrá tu error de Carbon::isPast()
+                alert("ERROR BACKEND: " + error.response.data.error);
             }
         }
     };
 
-    // 3. Función para eliminar
     const handleEliminar = async (id) => {
         if (!confirm('¿Seguro que deseas eliminar este evento?')) return;
         
@@ -86,22 +83,44 @@ export default function Index({ eventos,sedes,categorias, filtros }) {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif' }}>
             
-            {/* SIDEBAR BÁSICO */}
+            {/* SIDEBAR DINÁMICO */}
             <div style={{ width: '250px', background: '#1f2937', color: 'white', padding: '20px' }}>
                 <h2>Mi Proyecto</h2>
-                <ul style={{ listStyle: 'none', padding: 0, marginTop: '30px' }}>
+                
+                {/* Mostramos qué usuario está logeado (Opcional, para UX) */}
+                <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '20px' }}>
+                    Conectado como: {usuario.nombre} ({usuario.id_rol === 1 ? 'Admin' : 'Organizador'})
+                </div>
+
+                <ul style={{ listStyle: 'none', padding: 0, marginTop: '10px' }}>
+                    
+                {/* ENLACES SOLO PARA ORGANIZADOR (Rol 2) */}
+                {usuario.id_rol === 2 && (
                     <li style={{ marginBottom: '15px' }}>
-                        {/* Enlace simulado a Usuarios */}
-                        <Link href="/usuarios" style={{ color: 'white', textDecoration: 'none' }}>👥 Usuarios</Link>
+                        <Link href="/eventos" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 'bold' }}>
+                            📅 Eventos
+                        </Link>
                     </li>
-                    <li style={{ marginBottom: '15px' }}>
-                        {/* Enlace real a Eventos */}
-                        <Link href="/eventos" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 'bold' }}>📅 Eventos</Link>
-                    </li>
+                )}
+
+                    {/* ENLACES SOLO PARA ADMINISTRADOR */}
+                    {usuario.id_rol === 1 && (
+                        <>
+                            <li style={{ marginBottom: '15px' }}>
+                                <Link href="/usuarios" style={{ color: 'white', textDecoration: 'none' }}>👥 Usuarios</Link>
+                            </li>
+                            <li style={{ marginBottom: '15px' }}>
+                                <Link href="/categorias" style={{ color: 'white', textDecoration: 'none' }}>🏷️ Categorías</Link>
+                            </li>
+                            <li style={{ marginBottom: '15px' }}>
+                                <Link href="/sedes" style={{ color: 'white', textDecoration: 'none' }}>🏢 Sedes</Link>
+                            </li>
+                        </>
+                    )}
                 </ul>
             </div>
 
-            {/* CONTENIDO PRINCIPAL */}
+            {/* CONTENIDO PRINCIPAL (Sin cambios en tu código original) */}
             <div style={{ flex: 1, padding: '30px', background: '#f3f4f6' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h1>Gestión de Eventos</h1>
@@ -113,7 +132,6 @@ export default function Index({ eventos,sedes,categorias, filtros }) {
                     </button>
                 </div>
 
-                {/* FORMULARIO DE PRUEBA (Se muestra si se hace clic en Nuevo Evento) */}
                 {mostrarFormulario && (
                     <div style={{ background: 'white', padding: '20px', marginTop: '20px', borderRadius: '8px', border: '1px solid #ccc' }}>
                         <h3>Crear Evento de Prueba</h3>
@@ -145,7 +163,6 @@ export default function Index({ eventos,sedes,categorias, filtros }) {
                             <label>Imagen (Opcional):</label>
                             <input type="file" onChange={e => setFormData({...formData, imagen_portada: e.target.files[0]})} />
 
-                            {/* Select para la Sede */}
                             <div style={{ marginBottom: '15px' }}>
                                 <label style={{ display: 'block', marginBottom: '5px' }}>Sede:</label>
                                 <select 
@@ -163,7 +180,6 @@ export default function Index({ eventos,sedes,categorias, filtros }) {
                                 </select>
                             </div>
 
-                            {/* Select para la Categoría */}
                             <div style={{ marginBottom: '15px' }}>
                                 <label style={{ display: 'block', marginBottom: '5px' }}>Categoría:</label>
                                 <select 
@@ -186,7 +202,6 @@ export default function Index({ eventos,sedes,categorias, filtros }) {
                     </div>
                 )}
 
-                {/* TABLA DE EVENTOS */}
                 <div style={{ background: 'white', marginTop: '30px', borderRadius: '8px', padding: '20px', overflowX: 'auto' }}>
                     <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
                         <thead>
@@ -214,7 +229,6 @@ export default function Index({ eventos,sedes,categorias, filtros }) {
                                             </strong>
                                         </td>
                                         <td>
-                                            {/* Botón para probar la validación de fechas */}
                                             {evento.estado_evento === 'Borrador' && (
                                                 <button onClick={() => handleCambiarEstado(evento.id_evento, 'Publicado')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer' }}>
                                                     Publicar
@@ -240,8 +254,6 @@ export default function Index({ eventos,sedes,categorias, filtros }) {
                         </tbody>
                     </table>
                     
-                
-                  {/* Botones de Paginación seguros */}
                     <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
                         {eventos.links && eventos.links.map((link, index) => (
                             link.url ? (

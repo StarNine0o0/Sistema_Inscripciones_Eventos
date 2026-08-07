@@ -108,11 +108,20 @@ public function loginWeb(Request $request)
                 'correo_institucional' => 'Esta cuenta de usuario no está activa.',
             ]);
         }
-        Auth::login($usuario);
         
-        $request->session()->regenerate();
+        Auth::login($usuario);
 
-        return redirect()->intended('/eventos'); 
+    $request->session()->regenerate();
+
+    if ($usuario->id_rol === 1) {
+        return redirect('/categorias'); 
+    }
+    
+    if ($usuario->id_rol === 2) {
+        return redirect('/eventos');
+    }
+
+    return redirect('/');
     }
 
 

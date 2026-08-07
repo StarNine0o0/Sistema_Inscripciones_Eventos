@@ -9,7 +9,7 @@ class UsuariosRepository
     public function obtenerUsuarios()
     {
         try {
-            $usuarios = Usuario::all();
+            $usuarios = Usuario::paginate(10);
             return [
                 "mensaje" => "Usuarios obtenidos correctamente",
                 "usuarios" => $usuarios
@@ -52,7 +52,8 @@ class UsuariosRepository
                 "usuario" => $usuario
             ];
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener el usuario: ' . $e->getMessage()], 500);
+            $codigo = $e->getCode() ?: 500;
+            throw new \Exception($e->getMessage(), $codigo);
         }
     }
 
