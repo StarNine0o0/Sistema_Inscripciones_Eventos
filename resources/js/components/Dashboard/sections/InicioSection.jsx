@@ -29,7 +29,10 @@ const InicioSection = ({ usuario, onNuevoEvento, onEditarEvento }) => {
             <header className="top-bar">
                 <div>
                     <h1 className="page-title">Dashboard</h1>
-                    <p className="page-subtitle">Bienvenidos, {usuario?.nombre_completo || 'Administrador'}</p>
+
+
+                    <p className="page-subtitle">Bienvenido, {usuario?.nombre_completo || 'Administrador'}</p>
+
                 </div>
 
                 <div className="action-buttons">
