@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 
-class Usuario extends Authenticatable
+class Usuario extends Authenticatable implements CanResetPasswordContract
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, CanResetPassword;
     protected $table = 'usuarios';
     protected $primaryKey = 'id_usuario';
     protected $fillable = [
@@ -44,5 +46,16 @@ class Usuario extends Authenticatable
     public function rol()
     {
         return $this->belongsTo(Rol::class, 'id_rol', 'id_rol');
-    }   
+    }  
+    
+    public function getEmailForPasswordReset()
+    {
+        return $this->correo_institucional;
+    }
+    //le indico a sistema de notificacione par ausar la direccion de correo institucional para enviar notificaciones de restablecimiento de contraseña
+    public function routeNotificationForMail($notification)
+    {
+        return $this->correo_institucional;
+    }
+
 }

@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Password;
+use Inertia\Inertia;
 
 class AuthController extends Controller
 {
@@ -125,8 +127,26 @@ public function loginWeb(Request $request)
     }
 
 
+    //recuperar contraseña
+    public function showLinkRequestForm()
+    {
+        return Inertia::render('Auth/RecuperarPassword');
+    }
 
+ //proceso de envio de correo 
+    public function sendResetLinkEmail(Request $request)
+    {
+        //validamos el ccoreo 
+    $request->validate(['correo_institucional' => 'required|email|exists:usuarios,correo_institucional']);
+    //hcamoes la busqueda  del correo en la base de datos
+    $status = Password::broker()->sendResetLink(['correo_institucional' => $request->correo_institucional]);
 
+    if ($status === Password::RESET_LINK_SENT) {
+        return back()->with('status', 'Correo de recuperación enviado correctamente.');
+    }
+    return back()->withErrors(['correo_institucional' => __($status)]);
+    
+}
 
 
 }

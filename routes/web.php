@@ -16,6 +16,14 @@ Route::get('/login', function () {
 
 Route::post('/login', [AuthController::class, 'loginWeb']);
 
+// Ruta para ver el formulario de "olvidé mi contraseña"
+Route::get('/recuperar-password', [AuthController::class, 'showLinkRequestForm'])->name('password.request');
+// Ruta para procesar el envío del correo
+Route::post('/recuperar-password', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
+// Ruta para mostrar el formulario donde escriben la nueva contraseña
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
+// Ruta para guardar la nueva contraseña
+Route::post('/reset-password', [AuthController::class, 'reset'])->name('password.update');
 
 
 
