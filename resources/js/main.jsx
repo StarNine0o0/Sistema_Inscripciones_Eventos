@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 
-import Login from './components/Login/Login';
+import Login from './Pages/Login/Login';
 import Dashboard from './components/Dashboard/Dashboard';
 import { ToastProvider } from './context/ToastContext';
 
