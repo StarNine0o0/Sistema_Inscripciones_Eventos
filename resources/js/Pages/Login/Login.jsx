@@ -1,6 +1,6 @@
 import React from 'react';
 import { useForm, Head } from '@inertiajs/react';
-import './Login.css'; // Mantenemos los estilos de tu compañera
+import './login.css';
 
 export default function Login() {
     // Usamos tu lógica de Inertia para conectar con el backend
