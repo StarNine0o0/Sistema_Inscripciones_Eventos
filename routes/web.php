@@ -8,6 +8,10 @@ use App\Http\Controllers\EventosWebController;
 use App\Http\Controllers\CategoriasWebController;
 use App\Http\Controllers\SedesWebController;
 
+//redireccionar la ruta raíz a la página de inicio de sesión
+Route::get('/', function () {
+    return redirect('/login');
+});
 
 Route::get('/login', function () {
     return Inertia::render('Login/Login');
