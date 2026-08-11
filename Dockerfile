@@ -44,4 +44,4 @@ EXPOSE 10000
 # ── Comando de arranque: limpia caché vieja, cachea con las variables
 #    reales (que solo existen en este momento, no durante el build),
 #    corre migraciones y levanta el servidor ─────────────────────────────
-CMD php artisan config:clear && php artisan config:cache && php artisan route:cache && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
+CMD php artisan config:clear && php artisan config:cache && php artisan route:cache && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=$PORT
