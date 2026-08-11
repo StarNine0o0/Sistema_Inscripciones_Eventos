@@ -13,13 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: '*');
+        
         $middleware->alias([
-//<<<<<<< HEAD
             'role' => \App\Http\Middleware\CheckRole::class,
-//=======
             'admin' => \App\Http\Middleware\CheckRole::class,
             'organizador' => \App\Http\Middleware\CheckOrganizerRole::class,
-//>>>>>>> feature/modulo4-Gestion-Inscripciones
+
         ]);
 
         // Registramos Inertia en la pila 'web'
