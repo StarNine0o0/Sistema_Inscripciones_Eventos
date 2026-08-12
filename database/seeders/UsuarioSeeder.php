@@ -21,6 +21,15 @@ class UsuarioSeeder extends Seeder
                 'estado_usuario' => 'activo',
                 'foto_perfil' => null,
             ],
+             [
+                'id_rol' => 1,
+                'nombre_completo' => 'Organizador',
+                'correo_institucional' => 'org@uni.edu.mx',
+                'contrasena' => Hash::make('org123'),
+                'matricula_empleado' => 'ORG-001',
+                'estado_usuario' => 'activo',
+                'foto_perfil' => null,
+            ]
         ]);
     }
 }

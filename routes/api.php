@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\EventosApiController;
+use App\Http\Controllers\InscripcionController;
+use App\Http\Controllers\ReporteController;
+
 
 // Rutas publicas 
 Route::post('/login', [AuthController::class, 'loginApi']);
@@ -19,3 +22,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 });
+
+//rutas para el organizador e inscripciones
+Route::middleware(['auth:sanctum', 'organizador'])->group(function () {
+    Route::get('/eventos/{evento}/inscripciones', [InscripcionController::class, 'index']);
+    Route::post('/eventos/{evento}/inscripciones', [InscripcionController::class, 'store']);
+    Route::get('/eventos/{evento}/inscripciones/exportar', [InscripcionController::class, 'exportar']);
+    Route::get('/eventos/{evento}/ocupacion', [InscripcionController::class, 'ocupacion']);
+    Route::patch('/inscripciones/{inscripcion}/cancelar', [InscripcionController::class, 'cancelar']);
+    Route::post('/inscripciones/checkin', [InscripcionController::class, 'checkin']);
+});
+
+//Ruta para los reportes y estadisiticas
+Route::middleware(['auth:sanctum', 'organizador'])->group(function () {
+    Route::get('/reportes/eventos-populares', [ReporteController::class, 'eventosPopulares']);
+    Route::get('/reportes/tasa-asistencia', [ReporteController::class, 'tasaAsistencia']);
+    Route::get('/reportes/participacion-categoria', [ReporteController::class, 'participacionPorCategoria']);
+    Route::get('/reportes/usuarios-activos', [ReporteController::class, 'usuariosMasActivos']);
+    Route::get('/reportes/resumen-general', [ReporteController::class, 'resumenGeneral']);
+    Route::post('/reportes/exportar', [ReporteController::class, 'solicitarExportacion']);
+    Route::get('/reportes/{reporte}/estado', [ReporteController::class, 'estado']);
+    Route::get('/reportes/{reporte}/descargar', [ReporteController::class, 'descargar']);
+});
+
