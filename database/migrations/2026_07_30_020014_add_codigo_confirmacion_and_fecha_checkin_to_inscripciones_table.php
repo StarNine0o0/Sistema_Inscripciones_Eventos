@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * migracion para el codigo de confirmacion y fecha de checkin en la tabla de inscripciones.
      */
     public function up(): void
     {

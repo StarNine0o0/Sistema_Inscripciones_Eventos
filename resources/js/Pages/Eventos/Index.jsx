@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { router, Link, usePage } from '@inertiajs/react'; // IMPORTANTE: Agregamos usePage
+import { router, Link, usePage } from '@inertiajs/react'; 
 import axios from 'axios';
 
+//importar componete para gestionar inscripciones
+import GestionInscripciones from './GestionInscripciones';
+
 export default function Index({ eventos, sedes, categorias, filtros }) {
+
+const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Guardamos el eento al que queremos gestionar inscripciones
+
     // 1. Extraemos al usuario logeado usando Inertia
     const { auth } = usePage().props;
     const usuario = auth?.user || {};
@@ -17,7 +23,7 @@ export default function Index({ eventos, sedes, categorias, filtros }) {
         fecha_fin: '',
         capacidad_maxima: '',
         id_categoria: '', 
-        id_organizador: usuario.id, // Opcional: autocompletar el organizador con el usuario actual
+        id_organizador: usuario.id, 
         id_sede: '',        
         imagen_portada: null
     });
@@ -223,12 +229,19 @@ export default function Index({ eventos, sedes, categorias, filtros }) {
                                         <td>
                                             <strong style={{ 
                                                 color: evento.estado_evento === 'Publicado' ? 'green' : 
-                                                       evento.estado_evento === 'Cancelado' ? 'red' : 'gray' 
+                                                    evento.estado_evento === 'Cancelado' ? 'red' : 'gray' 
                                             }}>
                                                 {evento.estado_evento}
                                             </strong>
                                         </td>
                                         <td>
+                                            {/* Abre el gestor de inscripciones */}
+                                            <button 
+                                                onClick={() => setEventoParaGestionar(evento)} 
+                                                style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer', borderRadius: '4px' }}>
+                                                👥 Inscripciones
+                                            </button>
+
                                             {evento.estado_evento === 'Borrador' && (
                                                 <button onClick={() => handleCambiarEstado(evento.id_evento, 'Publicado')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer' }}>
                                                     Publicar
@@ -274,6 +287,13 @@ export default function Index({ eventos, sedes, categorias, filtros }) {
                     </div>
                 </div>
             </div>
+            {/* modal del modulo 4 , solo lo renderisza si tenemos un evento seleccionado */} 
+            {eventoParaGestionar && (
+                <GestionInscripciones 
+                    evento={eventoParaGestionar}
+                    onClose={() => setEventoParaGestionar(null)} 
+                />
+            )}               
         </div>
     );
 }
