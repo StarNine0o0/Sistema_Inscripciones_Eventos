@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventosWebController;
 use App\Http\Controllers\CategoriasWebController;
 use App\Http\Controllers\SedesWebController;
+use App\Http\Controllers\InscripcionController;
 
 
 Route::get('/login', function () {
@@ -67,6 +68,15 @@ Route::get('/eventos', [EventosWebController::class, 'index']);
     Route::put('/eventos/{id}', [EventosWebController::class, 'update']);// usar modal para editar evento
     Route::delete('/eventos/{id}', [EventosWebController::class, 'destroy']);
     Route::put('/eventos/{id}/estado', [EventosWebController::class, 'cambiarEstado']);
+
+ //rutas de inscripciones para organizador
+    Route::get('/eventos/{evento}/inscripciones', [InscripcionController::class, 'index']);
+    Route::post('/eventos/{evento}/inscripciones', [InscripcionController::class, 'store']);
+    Route::get('/eventos/{evento}/inscripciones/exportar', [InscripcionController::class, 'exportar']);
+    Route::get('/eventos/{evento}/ocupacion', [InscripcionController::class, 'ocupacion']);
+    Route::patch('/inscripciones/{inscripcion}/cancelar', [InscripcionController::class, 'cancelar']);
+    Route::post('/inscripciones/checkin', [InscripcionController::class, 'checkin']);
+
 
  
 
