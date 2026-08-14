@@ -6,35 +6,37 @@ use App\Http\Requests\StoreInscripcionRequest;
 use App\Models\Evento;
 use App\Models\Inscripcion;
 use App\Models\Usuario;
+use App\Http\Controllers\Repositories\InscripcionRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response as ResponseFacade;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InscripcionController extends Controller
 {
+    public function __construct(private InscripcionRepository $inscripciones)
+    {
+    }
+
     public function index(Request $request, Evento $evento)
     {
         $this->autorizarPropietario($request, $evento);
 
         $estado = $request->query('estado'); // Activa | Cancelada (opcional)
 
-        $query = $evento->inscripciones()->with('participante:id_usuario,nombre_completo,correo_institucional'); //busca las inscripciones del evento y carga la relación con el participante, seleccionando solo los campos necesarios
-
-        if ($estado) {
-            $query->where('estado_inscripcion', $estado);
-        }
-//nos devuelve la lista de inscripciones del evento, ordenadas por fecha de inscripción, y mapea cada inscripción a un array con los datos relevantes del participante y la inscripción.
-        $inscripciones = $query->orderBy('fecha_inscripcion')->get()->map(function (Inscripcion $i) {
-            return [
-                'id_inscripcion'      => $i->id_inscripcion,
-                'nombre'              => $i->participante->nombre_completo,
-                'correo'              => $i->participante->correo_institucional,
-                'fecha_inscripcion'   => $i->fecha_inscripcion,
-                'estado_inscripcion'  => $i->estado_inscripcion,
-                'estado_asistencia'   => $i->estado_asistencia,
-                'codigo_confirmacion' => $i->codigo_confirmacion,
-            ];
-        });
+        //busca las inscripciones del evento y carga la relación con el participante, seleccionando solo los campos necesarios
+        //nos devuelve la lista de inscripciones del evento, ordenadas por fecha de inscripción, y mapea cada inscripción a un array con los datos relevantes del participante y la inscripción.
+        $inscripciones = $this->inscripciones->listarPorEvento($evento->id_evento, $estado)
+            ->map(function (Inscripcion $i) {
+                return [
+                    'id_inscripcion'      => $i->id_inscripcion,
+                    'nombre'              => $i->participante->nombre_completo,
+                    'correo'              => $i->participante->correo_institucional,
+                    'fecha_inscripcion'   => $i->fecha_inscripcion,
+                    'estado_inscripcion'  => $i->estado_inscripcion,
+                    'estado_asistencia'   => $i->estado_asistencia,
+                    'codigo_confirmacion' => $i->codigo_confirmacion,
+                ];
+            });
 
         return response()->json([
             'mensaje' => 'Lista de inscritos obtenida correctamente.',
@@ -48,13 +50,10 @@ class InscripcionController extends Controller
 
         $participante = $request->filled('id_participante')
             ? Usuario::findOrFail($request->id_participante)
-            : Usuario::where('correo_institucional', $request->correo_institucional)->firstOrFail();
+            : Usuario::where('correo_institucional', $request->correo_institucional)->firstOrFail();//si el request tiene id_participante, busca al usuario por su ID; de lo contrario, busca al usuario por su correo institucional. Si no encuentra al usuario, lanza una excepción 404.
 
         // Regla: un participante cancelado no puede volver a inscribirse si el cupo está lleno
-        $fueCancelado = Inscripcion::where('id_evento', $evento->id_evento)
-            ->where('id_participante', $participante->id_usuario)
-            ->where('estado_inscripcion', 'Cancelada')
-            ->exists();//esto verifica si ya tuvo una inscripcion y devuelve true si la tuvo y false si no la tuvo
+        $fueCancelado = $this->inscripciones->existeCanceladaDe($evento->id_evento, $participante->id_usuario);//esto verifica si ya tuvo una inscripcion y devuelve true si la tuvo y false si no la tuvo
 
         if ($fueCancelado && $evento->cupoLleno()) {
             return response()->json([
@@ -68,10 +67,7 @@ class InscripcionController extends Controller
             ], 422);
         }
 
-        $yaActivo = Inscripcion::where('id_evento', $evento->id_evento)
-            ->where('id_participante', $participante->id_usuario)
-            ->where('estado_inscripcion', 'Activa')
-            ->exists();
+        $yaActivo = $this->inscripciones->existeActivaDe($evento->id_evento, $participante->id_usuario);
 
         if ($yaActivo) {
             return response()->json([
@@ -79,7 +75,8 @@ class InscripcionController extends Controller
             ], 422);
         }
 
-        $inscripcion = Inscripcion::create([
+        //creaa la inscripcion manualmente, asignando el ID del evento, el ID del participante, la fecha y hora actual como fecha de inscripción, y estableciendo los estados de inscripción y asistencia.
+        $inscripcion = $this->inscripciones->crear([
             'id_evento'          => $evento->id_evento,
             'id_participante'    => $participante->id_usuario,
             'fecha_inscripcion'  => now(), //nos ayuda a registrar la fecha y hora exacta en que se realiza la inscripción en tiempo real
@@ -87,7 +84,7 @@ class InscripcionController extends Controller
             'estado_asistencia'  => 'Pendiente',
         ]);
 
-        return response()->json([
+        return response()->json([ //devuelve un mensaje de éxito y los datos de la inscripción recién creada, incluyendo la información del participante.
             'mensaje' => 'Participante añadido manualmente con éxito.',
             'inscripcion' => $inscripcion->load('participante:id_usuario,nombre_completo,correo_institucional'),
         ], 201);
@@ -103,11 +100,11 @@ class InscripcionController extends Controller
             ], 422);
         }
 
-        $inscripcion->update(['estado_inscripcion' => 'Cancelada']);
+        $this->inscripciones->cancelar($inscripcion);
 
         return response()->json([
             'mensaje' => 'Inscripción cancelada correctamente.',
-            'inscripcion' => $inscripcion,
+            'inscripcion' => $inscripcion->fresh(),
         ], 200);
     }
 
@@ -118,9 +115,9 @@ class InscripcionController extends Controller
             'codigo_confirmacion' => 'required_without:id_inscripcion|string',
         ]);
 
-        $inscripcion = $request->filled('id_inscripcion')
-            ? Inscripcion::find($request->id_inscripcion)
-            : Inscripcion::where('codigo_confirmacion', $request->codigo_confirmacion)->first();
+        $inscripcion = $request->filled('id_inscripcion') //el filled funciona para verificar si el campo id_inscripcion está presente y no está vacío en la solicitud. Si es así, busca la inscripción por su ID; de lo contrario, busca la inscripción por el código de confirmación.
+            ? $this->inscripciones->buscarPorId($request->id_inscripcion)
+            : $this->inscripciones->buscarPorCodigo($request->codigo_confirmacion);
 
         if (!$inscripcion) {
             return response()->json(['mensaje' => 'No se encontró la inscripción indicada.'], 404);
@@ -147,14 +144,11 @@ class InscripcionController extends Controller
             ], 422);
         }
 
-        $inscripcion->update([
-            'estado_asistencia' => 'Confirmada',
-            'fecha_checkin'     => now(),
-        ]);
+        $this->inscripciones->confirmarAsistencia($inscripcion);
 
         return response()->json([
             'mensaje' => 'Asistencia registrada correctamente.',
-            'inscripcion' => $inscripcion->load('participante:id_usuario,nombre_completo,correo_institucional'),
+            'inscripcion' => $inscripcion->fresh()->load('participante:id_usuario,nombre_completo,correo_institucional'),
         ], 200);
     }
 
@@ -164,11 +158,7 @@ class InscripcionController extends Controller
 
         $estado = $request->query('estado');
 
-        $query = $evento->inscripciones()->with('participante:id_usuario,nombre_completo,correo_institucional');
-        if ($estado) {
-            $query->where('estado_inscripcion', $estado);
-        }
-        $inscripciones = $query->orderBy('fecha_inscripcion')->get();
+        $inscripciones = $this->inscripciones->listarPorEvento($evento->id_evento, $estado);
 
         $nombreArchivo = 'inscritos_evento_' . $evento->id_evento . '_' . now()->format('Ymd_His') . '.csv';
 
@@ -227,5 +217,51 @@ class InscripcionController extends Controller
         if (!$esAdmin && !$esDueno) {
             abort(403, 'No tienes permiso para gestionar las inscripciones de este evento.');
         }
+    }
+
+
+    // MÉTODOS EXCLUSIVOS PARA LA APLICACIÓN MÓVIL (PARTICIPANTES)
+
+    public function inscribirseApp(Request $request, Evento $evento)
+    {
+        // 1. Identificamos al estudiante usando su Token (Sin pedir correo)
+        $participante = $request->user();
+
+        // 2. Regla Módulo 8: Bloquear si el evento ya pasó
+        if (now()->isAfter($evento->fecha_inicio)) {
+            return response()->json([
+                'mensaje' => 'No puedes inscribirte: el evento ya ha comenzado o ya pasó.',
+            ], 422);
+        }
+
+        // 3. Regla Módulo 8: Validar cupo lleno
+        if ($evento->cupoLleno()) {
+            return response()->json([
+                'mensaje' => 'Lo sentimos, el evento ha alcanzado su capacidad máxima.',
+            ], 422);
+        }
+
+        // 4. Regla Módulo 8: No se puede inscribir más de una vez (Usando el Repository)
+        $yaActivo = $this->inscripciones->existeActivaDe($evento->id_evento, $participante->id_usuario);
+
+        if ($yaActivo) {
+            return response()->json([
+                'mensaje' => 'Ya te encuentras inscrito en este evento.',
+            ], 422);
+        }
+
+        // 5. Crear inscripción (Usando el Repository)
+        $inscripcion = $this->inscripciones->crear([
+            'id_evento'          => $evento->id_evento,
+            'id_participante'    => $participante->id_usuario,
+            'fecha_inscripcion'  => now(),
+            'estado_inscripcion' => 'Activa',
+            'estado_asistencia'  => 'Pendiente',
+        ]);
+
+        return response()->json([
+            'mensaje' => '¡Inscripción realizada con éxito desde la App!',
+            'inscripcion' => $inscripcion,
+        ], 201);
     }
 }
