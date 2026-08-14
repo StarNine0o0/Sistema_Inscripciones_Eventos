@@ -2,60 +2,48 @@ import React, { useState } from 'react';
 import { router, Link, usePage } from '@inertiajs/react'; 
 import axios from 'axios';
 
-//importar componete para gestionar inscripciones
+
 import GestionInscripciones from './GestionInscripciones';
+import FormularioEventoModal from './FormularioEventoModal';
 
 export default function Index({ eventos, sedes, categorias, filtros }) {
 
-const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Guardamos el eento al que queremos gestionar inscripciones
-
-    // 1. Extraemos al usuario logeado usando Inertia
+    // Extraemos al usuario logeado usando Inertia
     const { auth } = usePage().props;
     const usuario = auth?.user || {};
 
-    // Estados para el formulario de crear
-    const [mostrarFormulario, setMostrarFormulario] = useState(false);
-    const [erroresBackend, setErroresBackend] = useState(null);
-    const [formData, setFormData] = useState({
-        nombre_evento: '',
-        descripcion: '',
+    // Estados para controlar qué modal está abierto
+    const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Modal Inscripciones
+    const [modalFormularioAbierto, setModalFormularioAbierto] = useState(false); // Modal Crear/Editar
+    const [eventoEnEdicion, setEventoEnEdicion] = useState(null); // Datos del evento a editar
+
+    //funciones de filtros isset
+    const [valoresFiltros, setValoresFiltros] = useState({
+        id_categoria: '',
+        estado_evento: '',
         fecha_inicio: '',
-        fecha_fin: '',
-        capacidad_maxima: '',
-        id_categoria: '', 
-        id_organizador: usuario.id, 
-        id_sede: '',        
-        imagen_portada: null
     });
 
-    const handleSubmit = async (e) => {
+    //mandamos las variables por la url y con el preserveState: true, replace: true para que no se recargue la pagina o parpadie para mejor ux
+    const aplicarFiltros = (e) => {
         e.preventDefault();
-        setErroresBackend(null);
+        router.get('/eventos', valoresFiltros, { preserveState: true, replace: true });
+    }
+    
+    const limpiarFiltros = () => {
+        setValoresFiltros({ id_categoria: '', estado_evento: '', fecha_inicio: '' });
+        router.get('/eventos', {}, { preserveState: true, replace: true });
+    };
 
-        const data = new FormData();
-        for (const key in formData) {
-            if(formData[key] !== null && formData[key] !== '') {
-                data.append(key, formData[key]);
-            }
-        }
+    // Funciones para abrir los modales
+    const handleAbrirNuevo = () => {
+        setEventoEnEdicion(null); // Null significa que es un evento nuevo
+        setModalFormularioAbierto(true);
+    };
 
-        try {
-            const response = await axios.post('/eventos', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            
-            alert(response.data.mensaje);
-            setMostrarFormulario(false);
-            router.reload(); 
-            
-        } catch (error) {
-            if (error.response && error.response.data.error) {
-                setErroresBackend(error.response.data.error);
-            } else if (error.response && error.response.data.errors) {
-                const mensajesErrores = Object.values(error.response.data.errors).flat().join(' | ');
-                setErroresBackend("Faltan datos: " + mensajesErrores);
-            }
-        }
+    const handleEditar = (evento) => {
+        setEventoEnEdicion(evento); // Le pasamos todo el evento para que se llene
+        setModalFormularioAbierto(true);
     };
 
     const handleCambiarEstado = async (id, nuevoEstado) => {
@@ -63,10 +51,8 @@ const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Guardam
             const response = await axios.put(`/eventos/${id}/estado`, {
                 estado_evento: nuevoEstado
             });
-            
             alert(response.data.mensaje);
             router.reload(); 
-            
         } catch (error) {
             if (error.response && error.response.data.error) {
                 alert("ERROR BACKEND: " + error.response.data.error);
@@ -76,7 +62,6 @@ const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Guardam
 
     const handleEliminar = async (id) => {
         if (!confirm('¿Seguro que deseas eliminar este evento?')) return;
-        
         try {
             await axios.delete(`/eventos/${id}`);
             alert('Evento eliminado');
@@ -93,14 +78,11 @@ const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Guardam
             <div style={{ width: '250px', background: '#1f2937', color: 'white', padding: '20px' }}>
                 <h2>Mi Proyecto</h2>
                 
-                {/* Mostramos qué usuario está logeado (Opcional, para UX) */}
                 <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '20px' }}>
                     Conectado como: {usuario.nombre} ({usuario.id_rol === 1 ? 'Admin' : 'Organizador'})
                 </div>
 
                 <ul style={{ listStyle: 'none', padding: 0, marginTop: '10px' }}>
-                    
-                {/* ENLACES SOLO PARA ORGANIZADOR (Rol 2) */}
                 {usuario.id_rol === 2 && (
                     <li style={{ marginBottom: '15px' }}>
                         <Link href="/eventos" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 'bold' }}>
@@ -108,8 +90,6 @@ const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Guardam
                         </Link>
                     </li>
                 )}
-
-                    {/* ENLACES SOLO PARA ADMINISTRADOR */}
                     {usuario.id_rol === 1 && (
                         <>
                             <li style={{ marginBottom: '15px' }}>
@@ -126,88 +106,73 @@ const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Guardam
                 </ul>
             </div>
 
-            {/* CONTENIDO PRINCIPAL (Sin cambios en tu código original) */}
+            {/* CONTENIDO PRINCIPAL */}
             <div style={{ flex: 1, padding: '30px', background: '#f3f4f6' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h1>Gestión de Eventos</h1>
                     <button 
-                        onClick={() => setMostrarFormulario(!mostrarFormulario)}
+                        onClick={handleAbrirNuevo}
                         style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
                     >
-                        {mostrarFormulario ? 'Cancelar' : '+ Nuevo Evento'}
+                        + Nuevo Evento
                     </button>
                 </div>
 
-                {mostrarFormulario && (
-                    <div style={{ background: 'white', padding: '20px', marginTop: '20px', borderRadius: '8px', border: '1px solid #ccc' }}>
-                        <h3>Crear Evento de Prueba</h3>
+                 {/* NUEVO: BARRA DE FILTROS */}
+                <div style={{ background: 'white', marginTop: '20px', padding: '15px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                    <form onSubmit={aplicarFiltros} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                         
-                        {erroresBackend && (
-                            <div style={{ background: '#fecaca', color: '#991b1b', padding: '10px', marginBottom: '15px' }}>
-                                {erroresBackend}
-                            </div>
-                        )}
+                        <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Categoría:</label>
+                            <select 
+                                value={valoresFiltros.id_categoria} 
+                                onChange={e => setValoresFiltros({...valoresFiltros, id_categoria: e.target.value})}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '150px' }}
+                            >
+                                <option value="">Todas</option>
+                                {categorias && categorias.map(cat => (
+                                    <option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre_categoria}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '10px', maxWidth: '500px' }}>
-                            <input type="text" placeholder="Nombre del evento" required 
-                                onChange={e => setFormData({...formData, nombre_evento: e.target.value})} />
-                            
-                            <textarea placeholder="Descripción" required 
-                                onChange={e => setFormData({...formData, descripcion: e.target.value})}></textarea>
-                            
-                            <label>Fecha Inicio:</label>
-                            <input type="datetime-local" required 
-                                onChange={e => setFormData({...formData, fecha_inicio: e.target.value})} />
-                            
-                            <label>Fecha Fin:</label>
-                            <input type="datetime-local" required 
-                                onChange={e => setFormData({...formData, fecha_fin: e.target.value})} />
-                            
-                            <input type="number" placeholder="Capacidad Máxima (ej. 50)" required 
-                                onChange={e => setFormData({...formData, capacidad_maxima: e.target.value})} />
-                            
-                            <label>Imagen (Opcional):</label>
-                            <input type="file" onChange={e => setFormData({...formData, imagen_portada: e.target.files[0]})} />
+                        <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Estado:</label>
+                            <select 
+                                value={valoresFiltros.estado_evento} 
+                                onChange={e => setValoresFiltros({...valoresFiltros, estado_evento: e.target.value})}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '150px' }}
+                            >
+                                <option value="">Todos</option>
+                                <option value="Borrador">Borrador</option>
+                                <option value="Publicado">Publicado</option>
+                                <option value="Cancelado">Cancelado</option>
+                                <option value="Finalizado">Finalizado</option>
+                            </select>
+                        </div>
 
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px' }}>Sede:</label>
-                                <select 
-                                    value={formData.id_sede} 
-                                    onChange={e => setFormData({...formData, id_sede: e.target.value})}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                                    required
-                                >
-                                    <option value="">-- Selecciona una Sede --</option>
-                                    {sedes && sedes.map(sede => (
-                                        <option key={sede.id_sede} value={sede.id_sede}>
-                                            {sede.nombre_sede}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>A partir de la fecha:</label>
+                            <input 
+                                type="date" 
+                                value={valoresFiltros.fecha_inicio}
+                                onChange={e => setValoresFiltros({...valoresFiltros, fecha_inicio: e.target.value})}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                            />
+                        </div>
 
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px' }}>Categoría:</label>
-                                <select 
-                                    value={formData.id_categoria} 
-                                    onChange={e => setFormData({...formData, id_categoria: e.target.value})}
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                                    required
-                                >
-                                    <option value="">-- Selecciona una Categoría --</option>
-                                    {categorias && categorias.map(categoria => (
-                                        <option key={categoria.id_categoria} value={categoria.id_categoria}>
-                                            {categoria.nombre_categoria}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            
-                            <button type="submit" style={{ padding: '10px', background: '#10b981', color: 'white', border: 'none', cursor: 'pointer' }}>Guardar Evento</button>
-                        </form>
-                    </div>
-                )}
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button type="submit" style={{ padding: '8px 15px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                                🔍 Filtrar
+                            </button>
+                            <button type="button" onClick={limpiarFiltros} style={{ padding: '8px 15px', background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                                🧹 Limpiar
+                            </button>
+                        </div>
+                    </form>
+                </div>
 
+                {/* TABLA DE EVENTOS */}
                 <div style={{ background: 'white', marginTop: '30px', borderRadius: '8px', padding: '20px', overflowX: 'auto' }}>
                     <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
                         <thead>
@@ -235,25 +200,31 @@ const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Guardam
                                             </strong>
                                         </td>
                                         <td>
-                                            {/* Abre el gestor de inscripciones */}
+                                            {/* BOTONES DE ACCIÓN */}
                                             <button 
                                                 onClick={() => setEventoParaGestionar(evento)} 
                                                 style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer', borderRadius: '4px' }}>
                                                 👥 Inscripciones
                                             </button>
 
+                                            <button 
+                                                onClick={() => handleEditar(evento)} 
+                                                style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer', borderRadius: '4px' }}>
+                                                ✏️ Editar
+                                            </button>
+
                                             {evento.estado_evento === 'Borrador' && (
-                                                <button onClick={() => handleCambiarEstado(evento.id_evento, 'Publicado')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer' }}>
+                                                <button onClick={() => handleCambiarEstado(evento.id_evento, 'Publicado')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer', borderRadius: '4px' }}>
                                                     Publicar
                                                 </button>
                                             )}
                                             {evento.estado_evento === 'Publicado' && (
-                                                <button onClick={() => handleCambiarEstado(evento.id_evento, 'Cancelado')} style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer' }}>
+                                                <button onClick={() => handleCambiarEstado(evento.id_evento, 'Cancelado')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer', borderRadius: '4px' }}>
                                                     Cancelar
                                                 </button>
                                             )}
                                             
-                                            <button onClick={() => handleEliminar(evento.id_evento)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer' }}>
+                                            <button onClick={() => handleEliminar(evento.id_evento)} style={{ background: '#111827', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer', borderRadius: '4px' }}>
                                                 Eliminar
                                             </button>
                                         </td>
@@ -287,7 +258,20 @@ const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Guardam
                     </div>
                 </div>
             </div>
-            {/* modal del modulo 4 , solo lo renderisza si tenemos un evento seleccionado */} 
+            
+            {/* RENDERIZADO DE MODALES */}
+
+            {/* Modal 1: Crear/Editar Evento */}
+            {modalFormularioAbierto && (
+                <FormularioEventoModal 
+                    eventoParaEditar={eventoEnEdicion}
+                    sedes={sedes}
+                    categorias={categorias}
+                    onClose={() => setModalFormularioAbierto(false)}
+                />
+            )}
+
+            {/* Modal 2: Gestionar Inscripciones */} 
             {eventoParaGestionar && (
                 <GestionInscripciones 
                     evento={eventoParaGestionar}
