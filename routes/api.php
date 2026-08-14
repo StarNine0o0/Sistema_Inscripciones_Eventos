@@ -21,19 +21,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/eventos', [EventosApiController::class, 'index']);
     Route::get('/eventos/{id}', [EventosApiController::class, 'show']);
 
-    // Rutas exclusivas para la aplicación móvil (participantes)
+    // Rutas exclusivas para la aplicacin móvil 
     Route::post('/eventos/{evento}/inscribirse', [InscripcionController::class, 'inscribirseApp']);
+
+    // Botón de cancelar inscripcionn desde la app
+    Route::patch('/inscripciones/{inscripcion}/cancelar', [InscripcionController::class, 'cancelarApp']);
 
 
 });
 
-/*rutas para el organizador e incripciones (estas ahorita no)
-Route::middleware(['auth:sanctum', 'organizador'])->group(function () {
-    Route::get('/eventos/{evento}/inscripciones', [InscripcionController::class, 'index']);
-    Route::post('/eventos/{evento}/inscripciones', [InscripcionController::class, 'store']);
-    Route::get('/eventos/{evento}/inscripciones/exportar', [InscripcionController::class, 'exportar']);
-    Route::get('/eventos/{evento}/ocupacion', [InscripcionController::class, 'ocupacion']);
-    Route::patch('/inscripciones/{inscripcion}/cancelar', [InscripcionController::class, 'cancelar']);
-    Route::post('/inscripciones/checkin', [InscripcionController::class, 'checkin']);
-}); */
+
 

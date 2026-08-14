@@ -264,4 +264,48 @@ class InscripcionController extends Controller
             'inscripcion' => $inscripcion,
         ], 201);
     }
+
+
+    //metodo para cancelar desde movil
+    public function cancelarApp(Request $request, Inscripcion $inscripcion)
+    {
+        $participante = $request->user();
+
+        // 1. Regla de Seguridad: Verificar que el estudiante solo cancele SU propia inscripción
+        if ($inscripcion->id_participante !== $participante->id_usuario) {
+            return response()->json([
+                'mensaje' => 'Acceso denegado: No puedes cancelar una inscripción que no es tuya.',
+            ], 403);
+        }
+
+        // 2. Verificar que no esté cancelada ya
+        if ($inscripcion->estado_inscripcion === 'Cancelada') {
+            return response()->json([
+                'mensaje' => 'Esta inscripción ya se encuentra cancelada.',
+            ], 422);
+        }
+
+        // 3. Regla Módulo 8: Bloquear cancelación el mismo día del evento (o si ya pasó)
+        $evento = $inscripcion->evento;
+        
+        // Comparamos solo la parte de la fecha (Año-Mes-Día) ignorando la hora
+        $fechaEvento = \Carbon\Carbon::parse($evento->fecha_inicio)->format('Y-m-d');
+        $hoy = now()->format('Y-m-d');
+
+        if ($hoy >= $fechaEvento) {
+            return response()->json([
+                'mensaje' => 'No es posible cancelar: las cancelaciones se bloquean el mismo día del evento.',
+            ], 422);
+        }
+
+        // 4. Cancelar usando el Repository limpio de tu compañera
+        $this->inscripciones->cancelar($inscripcion);
+
+        return response()->json([
+            'mensaje' => 'Tu inscripción ha sido cancelada con éxito.',
+            'inscripcion' => $inscripcion->fresh(),
+        ], 200);
+    }
+
+
 }
