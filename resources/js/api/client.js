@@ -23,6 +23,8 @@
  *   }
  */
 
+import axios from 'axios';
+
 const SIMULATED_DELAY_MS = 350;
 
 function clonar(data) {
@@ -31,8 +33,22 @@ function clonar(data) {
         : JSON.parse(JSON.stringify(data));
 }
 
+// Usado por los módulos que todavía no se conectan al backend real
+// (eventosApi.js, estudiantesApi.js, etc.)
 export function mockResponse(data) {
     return new Promise((resolve) => {
         setTimeout(() => resolve(clonar(data)), SIMULATED_DELAY_MS);
     });
+}
+
+// Usado por los módulos ya conectados al backend real (reportesApi.js)
+export async function request(endpoint, options = {}) {
+    const res = await window.axios.request({
+        url: endpoint,
+        method: options.method || 'GET',
+        data: options.body,
+        params: options.params,
+        headers: { 'Content-Type': 'application/json', ...options.headers },
+    });
+    return res.data;
 }

@@ -4,10 +4,15 @@ import '../css/app.css'; // Si tienes CSS
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
+import { ToastProvider } from './context/ToastContext';
 
 createInertiaApp({
   resolve: (name) => resolvePageComponent(`./Pages/${name}.jsx`, import.meta.glob('./Pages/**/*.jsx')),
   setup({ el, App, props }) {
-    createRoot(el).render(<App {...props} />);
+    createRoot(el).render(
+      <ToastProvider>
+        <App {...props} />
+      </ToastProvider>
+    );
   },
 });

@@ -4,6 +4,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\InscripcionConfirmada;
 
 class Inscripcion extends Model
 {
@@ -39,6 +41,11 @@ class Inscripcion extends Model
 
                 $inscripcion->codigo_confirmacion = $codigo;
             }
+        });
+
+         static::created(function (Inscripcion $inscripcion) {
+             $inscripcion->load('participante');
+             Mail::to($inscripcion->participante->correo_institucional)->queue(new InscripcionConfirmada($inscripcion));
         });
     }
 

@@ -8,12 +8,27 @@ use App\Http\Controllers\EventosWebController;
 use App\Http\Controllers\CategoriasWebController;
 use App\Http\Controllers\SedesWebController;
 use App\Http\Controllers\InscripcionController;
+use App\Http\Controllers\ReporteController;
 
 
 Route::get('/login', function () {
     return Inertia::render('Login/Login');
 })->name('login');
 
+Route::middleware(['auth', 'role:administrador'])->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard/Dashboard', [
+            'usuario' => auth()->user(),
+        ]);
+    })->name('dashboard');
+});
+
+Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect('/dashboard');
+    }
+    return redirect('/login');
+});
 
 Route::post('/login', [AuthController::class, 'loginWeb']);
 
@@ -76,8 +91,15 @@ Route::get('/eventos', [EventosWebController::class, 'index']);
     Route::get('/eventos/{evento}/ocupacion', [InscripcionController::class, 'ocupacion']);
     Route::patch('/inscripciones/{inscripcion}/cancelar', [InscripcionController::class, 'cancelar']);
     Route::post('/inscripciones/checkin', [InscripcionController::class, 'checkin']);
+});
 
-
- 
-
- });
+Route::middleware(['auth', 'role:administrador'])->group(function () {
+    Route::get('/reportes/resumen-general', [ReporteController::class, 'resumenGeneral']);
+    Route::get('/reportes/eventos-populares', [ReporteController::class, 'eventosPopulares']);
+    Route::get('/reportes/tasa-asistencia', [ReporteController::class, 'tasaAsistencia']);
+    Route::get('/reportes/participacion-categoria', [ReporteController::class, 'participacionPorCategoria']);
+    Route::get('/reportes/usuarios-activos', [ReporteController::class, 'usuariosMasActivos']);
+    Route::post('/reportes/exportar', [ReporteController::class, 'solicitarExportacion']);
+    Route::get('/reportes/{reporte}/estado', [ReporteController::class, 'estado']);
+    Route::get('/reportes/{reporte}/descargar', [ReporteController::class, 'descargar']);
+});

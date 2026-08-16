@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import ModalEvento from '../ModalEvento/ModalEvento';
+import ModalEvento from '../../components/ModalEvento/ModalEvento';
 import InicioSection from './sections/InicioSection';
 import EventosSection from './sections/EventosSection';
 import EstudiantesSection from './sections/EstudiantesSection';
 import AnaliticasSection from './sections/AnaliticasSection';
+import ReportesSection from './sections/ReportesSection';
 import ConfiguracionSection from './sections/ConfiguracionSection';
 import { crearEvento, actualizarEvento } from '../../api/eventosApi';
 import { useToast } from '../../context/ToastContext';
@@ -14,6 +15,7 @@ const SECCIONES = [
     { id: 'eventos', label: 'Eventos', icono: 'calendar_month' },
     { id: 'estudiantes', label: 'Estudiantes', icono: 'group' },
     { id: 'analiticas', label: 'Analíticas', icono: 'analytics' },
+    { id: 'reportes', label: 'Reportes', icono: 'summarize' },
     { id: 'configuracion', label: 'Configuración', icono: 'settings' },
 ];
 
@@ -65,6 +67,8 @@ const Dashboard = ({ usuario }) => {
                 return <EstudiantesSection />;
             case 'analiticas':
                 return <AnaliticasSection key={refrescoEventos} />;
+                case 'reportes':
+                    return <ReportesSection />;
             case 'configuracion':
                 return <ConfiguracionSection usuario={usuario} />;
             case 'dashboard':

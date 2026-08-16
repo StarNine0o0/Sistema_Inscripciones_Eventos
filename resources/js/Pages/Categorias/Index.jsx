@@ -51,6 +51,9 @@ export default function Index({ categorias }) {
                     {usuario.id_rol === 1 && (
                         <>
                             <li style={{ marginBottom: '15px' }}>
+                              <Link href="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>📊 Dashboard</Link>
+                            </li>
+                            <li style={{ marginBottom: '15px' }}>
                                 <Link href="/usuarios" style={{ color: 'white', textDecoration: 'none' }}>👥 Usuarios</Link>
                             </li>
                             <li style={{ marginBottom: '15px' }}>
