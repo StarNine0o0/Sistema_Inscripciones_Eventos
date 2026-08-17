@@ -20,11 +20,17 @@ class ReporteController extends Controller
 
     private function filtros(Request $request): array
     {
+        $usuario = $request->user();
+        //si la interfaz lo manda vacio agarra el id de l rol y mete para que filtre por sus eventos el pdf
+        $idOrganizador = $usuario->id_rol === 2 
+            ? $usuario->id_usuario 
+            : $request->input('id_organizador');
+
         return array_filter([
-            'fecha_inicio'   => $request->query('fecha_inicio'),
-            'fecha_fin'      => $request->query('fecha_fin'),
-            'id_categoria'   => $request->query('id_categoria'),
-            'id_organizador' => $request->query('id_organizador'),
+            'fecha_inicio'   => $request->input('fecha_inicio'),
+            'fecha_fin'      => $request->input('fecha_fin'),
+            'id_categoria'   => $request->input('id_categoria'),
+            'id_organizador' => $idOrganizador,
         ], fn ($valor) => $valor !== null && $valor !== '');
     }
 

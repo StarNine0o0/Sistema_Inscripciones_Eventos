@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
 import { router, Link, usePage } from '@inertiajs/react';
+import '../../../css/app.css';
 
 export default function Index({ categorias }) {
-    // Extraemos al usuario y los posibles errores/mensajes flash de Inertia
     const { auth, errors } = usePage().props;
-    const usuario = auth?.user || {};
+    const usuarioLogeado = auth?.user || {};
 
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [nombreCategoria, setNombreCategoria] = useState('');
+
+    const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+
+    const handleLogout = () => {
+        router.post('/logout');
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        // Usamos router de Inertia (es más limpio que axios cuando no hay imágenes)
         router.post('/categorias', { nombre_categoria: nombreCategoria }, {
             onSuccess: () => {
                 setMostrarFormulario(false);
@@ -27,108 +33,144 @@ export default function Index({ categorias }) {
         
         router.delete(`/categorias/${id}`, {
             onError: (err) => {
-                if(err.error) alert(err.error); // Muestra el error de "tiene eventos asociados"
+                if (err.error) alert(err.error);
             }
         });
     };
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-            
-            {/* SIDEBAR DINÁMICO */}
-            <div style={{ width: '250px', background: '#1f2937', color: 'white', padding: '20px' }}>
-                <h2>Mi Proyecto</h2>
-                <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '20px' }}>
-                    Conectado como: {usuario.nombre} (Admin)
+        <div className="dashboard-container">
+            {/* SIDEBAR LATERAL */}
+            <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+                <div className="sidebar-content">
+                    <div className="sidebar-header">
+                        {!isCollapsed && (
+                            <div className="brand-info">
+                                <h2 className="brand-title">UniEvents</h2>
+                                <span className="brand-subtitle">
+                                    {usuarioLogeado.nombre} ({usuarioLogeado.id_rol === 1 ? 'Admin' : 'Organizador'})
+                                </span>
+                            </div>
+                        )}
+                        <button 
+                            className="menu-toggle" 
+                            onClick={toggleSidebar} 
+                            title={isCollapsed ? "Expandir menú" : "Colapsar menú"}
+                        >
+                            <span className="material-symbols-outlined">
+                                {isCollapsed ? 'menu' : 'chevron_left'}
+                            </span>
+                        </button>
+                    </div>
+
+                    <nav className="sidebar-nav">
+                        {usuarioLogeado.id_rol === 2 && (
+                            <Link href="/eventos" className="nav-item" title={isCollapsed ? "Eventos" : ""}>
+                                <span className="material-symbols-outlined nav-icon">calendar_month</span>
+                                {!isCollapsed && <span className="nav-text">Eventos</span>}
+                            </Link>
+                        )}
+
+                        {usuarioLogeado.id_rol === 1 && (
+                            <>
+                                <Link href="/usuarios" className="nav-item" title={isCollapsed ? "Usuarios" : ""}>
+                                    <span className="material-symbols-outlined nav-icon">group</span>
+                                    {!isCollapsed && <span className="nav-text">Usuarios</span>}
+                                </Link>
+                                <Link href="/categorias" className="nav-item active" title={isCollapsed ? "Categorías" : ""}>
+                                    <span className="material-symbols-outlined nav-icon">category</span>
+                                    {!isCollapsed && <span className="nav-text">Categorías</span>}
+                                </Link>
+                                <Link href="/sedes" className="nav-item" title={isCollapsed ? "Sedes" : ""}>
+                                    <span className="material-symbols-outlined nav-icon">apartment</span>
+                                    {!isCollapsed && <span className="nav-text">Sedes</span>}
+                                </Link>
+                            </>
+                        )}
+                           <Link href="/reportes" className="nav-item" title={isCollapsed ? "Reportes" : ""}>
+                                    <span className="material-symbols-outlined nav-icon">monitoring</span>
+                                    {!isCollapsed && <span className="nav-text">Reportes</span>}
+                                </Link>
+                    </nav>
                 </div>
 
-                <ul style={{ listStyle: 'none', padding: 0, marginTop: '10px' }}>
-                    {usuario.id_rol === 2 && (
-                        <li style={{ marginBottom: '15px' }}>
-                            <Link href="/eventos" style={{ color: 'white', textDecoration: 'none' }}>📅 Eventos</Link>
-                        </li>
-                    )}
-                    {usuario.id_rol === 1 && (
-                        <>
-                            <li style={{ marginBottom: '15px' }}>
-                              <Link href="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>📊 Dashboard</Link>
-                            </li>
-                            <li style={{ marginBottom: '15px' }}>
-                                <Link href="/usuarios" style={{ color: 'white', textDecoration: 'none' }}>👥 Usuarios</Link>
-                            </li>
-                            <li style={{ marginBottom: '15px' }}>
-                                <Link href="/categorias" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 'bold' }}>🏷️ Categorías</Link>
-                            </li>
-                            <li style={{ marginBottom: '15px' }}>
-                                <Link href="/sedes" style={{ color: 'white', textDecoration: 'none' }}>🏢 Sedes</Link>
-                            </li>
-                        </>
-                    )}
-                </ul>
-            </div>
+                {/* BOTÓN CERRAR SESIÓN */}
+                <div className="sidebar-footer">
+                    <button onClick={handleLogout} className="btn-logout" title={isCollapsed ? "Cerrar Sesión" : ""}>
+                        <span className="material-symbols-outlined nav-icon">logout</span>
+                        {!isCollapsed && <span className="nav-text">Cerrar Sesión</span>}
+                    </button>
+                </div>
+            </aside>
 
             {/* CONTENIDO PRINCIPAL */}
-            <div style={{ flex: 1, padding: '30px', background: '#f3f4f6' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1>Gestión de Categorías</h1>
-                    <button 
+            <main className="main-content">
+                <div className="top-bar">
+                    <div>
+                        <h1 className="page-title">Gestión de Categorías</h1>
+                        <p className="page-subtitle">Administra las categorías disponibles para la clasificación de eventos</p>
+                    </div>
+                    <button
                         onClick={() => setMostrarFormulario(!mostrarFormulario)}
-                        style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+                        className={mostrarFormulario ? 'btn-secondary' : 'btn-primary'}
                     >
-                        {mostrarFormulario ? 'Cancelar' : '+ Nueva Categoría'}
+                        <span className="material-symbols-outlined">
+                            {mostrarFormulario ? 'close' : 'add'}
+                        </span>
+                        {mostrarFormulario ? 'Cancelar' : 'Nueva Categoría'}
                     </button>
                 </div>
 
-                {/* Mostrar errores de validación de Laravel (como el unique) */}
-                {errors && errors.nombre_categoria && (
-                    <div style={{ background: '#fecaca', color: '#991b1b', padding: '10px', marginTop: '15px', borderRadius: '5px' }}>
-                        {errors.nombre_categoria}
-                    </div>
-                )}
-                
-                {/* Mostrar error de eliminación (cuando tiene eventos) */}
-                {errors && errors.error && (
-                    <div style={{ background: '#fecaca', color: '#991b1b', padding: '10px', marginTop: '15px', borderRadius: '5px' }}>
-                        {errors.error}
+                {/* MENSAJES DE ERROR */}
+                {errors && (errors.nombre_categoria || errors.error) && (
+                    <div className="alert-error">
+                        {errors.nombre_categoria || errors.error}
                     </div>
                 )}
 
+                {/* FORMULARIO DE CREACIÓN */}
                 {mostrarFormulario && (
-                    <div style={{ background: 'white', padding: '20px', marginTop: '20px', borderRadius: '8px', border: '1px solid #ccc' }}>
-                        <h3>Crear Categoría</h3>
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                            <input 
-                                type="text" 
-                                placeholder="Nombre de la categoría" 
-                                required 
-                                value={nombreCategoria}
-                                onChange={e => setNombreCategoria(e.target.value)} 
-                                style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                            />
-                            <button type="submit" style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                                Guardar
+                    <div className="panel">
+                        <h3 className="panel-title">Registrar Nueva Categoría</h3>
+                        <form onSubmit={handleSubmit} className="form-inline">
+                            <div className="input-container">
+                                <input
+                                    type="text"
+                                    placeholder="Nombre de la categoría"
+                                    required
+                                    value={nombreCategoria}
+                                    onChange={e => setNombreCategoria(e.target.value)}
+                                    className="custom-input"
+                                />
+                            </div>
+                            <button type="submit" className="btn-primary">
+                                Guardar Categoría
                             </button>
                         </form>
                     </div>
                 )}
 
-                <div style={{ background: 'white', marginTop: '30px', borderRadius: '8px', padding: '20px', overflowX: 'auto' }}>
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                {/* TABLA DE CATEGORÍAS */}
+                <div className="panel">
+                    <table className="data-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid #eee' }}>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Acciones</th>
+                            <tr>
+                                <th style={{ width: '80px' }}>ID</th>
+                                <th>Nombre de la Categoría</th>
+                                <th style={{ width: '120px', textAlign: 'center' }}>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {categorias && categorias.length > 0 ? (
                                 categorias.map(categoria => (
-                                    <tr key={categoria.id_categoria} style={{ borderBottom: '1px solid #eee' }}>
-                                        <td style={{ padding: '15px 0' }}>{categoria.id_categoria}</td>
-                                        <td>{categoria.nombre_categoria}</td>
-                                        <td>
-                                            <button onClick={() => handleEliminar(categoria.id_categoria)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>
+                                    <tr key={categoria.id_categoria}>
+                                        <td style={{ fontWeight: '500', color: '#64748b' }}>#{categoria.id_categoria}</td>
+                                        <td style={{ fontWeight: '600', color: '#1e293b' }}>{categoria.nombre_categoria}</td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <button
+                                                onClick={() => handleEliminar(categoria.id_categoria)}
+                                                className="btn-danger"
+                                            >
                                                 Eliminar
                                             </button>
                                         </td>
@@ -136,13 +178,15 @@ export default function Index({ categorias }) {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>No hay categorías registradas.</td>
+                                    <td colSpan="3" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                                        No hay categorías registradas.
+                                    </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

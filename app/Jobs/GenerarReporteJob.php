@@ -11,6 +11,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
+
 
 class GenerarReporteJob implements ShouldQueue
 {
@@ -22,13 +24,16 @@ class GenerarReporteJob implements ShouldQueue
     {
     }
 
-    public function handle(ReporteService $service, ReporteRepository $reportes): void
+public function handle(ReporteService $service, ReporteRepository $reportes): void
     {
         $reporte = $reportes->buscarPorId($this->idReporte);
 
         if (!$reporte) {
             return;
         }
+
+        //Iniciar sesion temporalmente en el trabajador
+        Auth::loginUsingId($reporte->id_usuario_solicitante);
 
         $reportes->marcarProcesando($reporte);
 

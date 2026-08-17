@@ -7,6 +7,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Repositories\SedeRepository;
 use App\Http\Requests\StoreSedeRequest;
 use App\Http\Requests\UpdateSedeRequest;
+use App\Models\Sede;
 
 class SedesWebController extends Controller
 {
@@ -30,15 +31,23 @@ class SedesWebController extends Controller
         }
     }
 
-    public function store(StoreSedeRequest $request)
+    public function store(Request $request)
     {
-        try {
-            $this->sedeRepository->registrarSede($request->validated());
-            
-            return redirect()->back()->with('success', 'Sede creada con éxito.');
-        } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['error' => 'Error al registrar: ' . $e->getMessage()]);
-        }
+        $request->validate([
+            'nombre_sede' => 'required|string|max:255',
+            'capacidad_sede' => 'required|numeric|min:1',
+        ], [
+            'nombre_sede.required' => 'El nombre de la sede es obligatorio.',
+            'capacidad_sede.required' => 'La capacidad es obligatoria.',
+            'capacidad_sede.numeric' => 'La capacidad debe ser un número entero.',
+        ]);
+
+        Sede::create([
+            'nombre_sede' => $request->nombre_sede,
+            'capacidad_sede' => $request->capacidad_sede,
+        ]);
+
+        return redirect()->back()->with('mensaje', 'Sede registrada correctamente');
     }
 
     public function update(UpdateSedeRequest $request, int $id)

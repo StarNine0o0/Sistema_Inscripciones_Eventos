@@ -13,28 +13,33 @@ class CheckRole
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next, string $rolEsperado): Response
+    //usamor el operador spread de acoumalacion para que recoja lo que tenga depues de la coma de nestra ruta web midlawer 'administrador.organizador'
+    public function handle(Request $request, Closure $next, string ...$rolesEsperados): Response
     {
-        //Verificamos que el usuario esté logeado
+        // Verificamos que el usuario esté logeado
         if (!$request->user()) {
             abort(403, 'Usuario no autenticado aun.');
         }
 
-        //Mapamos los nombres de los roles con los IDs
-        $roles = [
-            'administrador'       => 1,
-            'organizador' => 2,
+    
+        $rolesMap = [
+            'administrador' => 1,
+            'organizador'   => 2,
         ];
 
-        //verificamos le rol este definido 
-        if (!array_key_exists($rolEsperado, $roles)) {
-            abort(403, 'Rol no definido en el sistema.');
+        // Convertimos los roles permitidos a sus respectivos IDs numéricos
+        $idsPermitidos = [];
+        foreach ($rolesEsperados as $rol) {
+            if (array_key_exists(trim($rol), $rolesMap)) {
+                $idsPermitidos[] = $rolesMap[trim($rol)];
+            }
         }
 
-        //  Comparamos el id_rol del usuario con el que requiere la ruta
-        if ($request->user()->id_rol === $roles[$rolEsperado]) {
+        // Comparamos si el id_rol del usuario actual está dentro de los permitidos para esta ruta
+        if (in_array((int) $request->user()->id_rol, $idsPermitidos, true)) {
             return $next($request);
         }
+
         abort(403, 'Acceso denegado. No tienes permisos para entrar a este módulo.');
     }
 }

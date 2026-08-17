@@ -7,6 +7,7 @@ use App\Http\Controllers\Repositories\UsuariosRepository;
 use App\Http\Requests\StoreUsuarioRequest;
 use App\Http\Requests\UpdateUsuarioRequest;
 use Inertia\Inertia;
+use App\Models\Usuario;
 
 class UsuarioController extends Controller
 {
@@ -51,6 +52,26 @@ class UsuarioController extends Controller
             ]);
         } catch (\Exception $e) {
             abort(500, 'Error al mostrar el perfil: ' . $e->getMessage());
+        }
+    }
+
+    public function cambiarEstado(Request $request, int $id)
+    {
+        try {
+            // Validamos que venga el campo 'estado' desde React
+            $request->validate([
+                'estado' => 'required|string'
+            ]);
+
+            // Buscamos el usuario y actualizamos el campo en la base de datos
+            $usuario = Usuario::findOrFail($id);
+            $usuario->update([
+                'estado_usuario' => $request->input('estado')
+            ]);
+
+            return redirect()->back()->with('success', 'Estado del usuario actualizado correctamente.');
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => 'Error al cambiar estado: ' . $e->getMessage()]);
         }
     }
 
