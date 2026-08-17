@@ -51,7 +51,7 @@ class UsuarioController extends Controller
                 'usuario_perfil' => $resultado['usuario']
             ]);
         } catch (\Exception $e) {
-            abort(500, 'Error al mostrar el perfil: ' . $e->getMessage());
+        abort($e->getCode() ?: 500, $e->getMessage());
         }
     }
 

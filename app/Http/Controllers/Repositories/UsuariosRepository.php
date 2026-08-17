@@ -57,7 +57,7 @@ class UsuariosRepository
 
             return $usuario;
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al registrar el usuario: ' . $e->getMessage()], 500);
+            throw new \Exception('Error al registrar el usuario: ' . $e->getMessage(), 500);
         }
     }
 
@@ -98,7 +98,8 @@ class UsuariosRepository
                 "usuario" => $usuario
             ];
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al actualizar el usuario: ' . $e->getMessage()], 500);
+            $codigo = $e->getCode() ?: 500;
+            throw new \Exception('Error al actualizar el usuario: ' . $e->getMessage(), $codigo);
         }
     }
 
@@ -150,9 +151,6 @@ class UsuariosRepository
         throw new \Exception('Error al restablecer contraseña: ' . $e->getMessage(), $codigo);
     }
 }
-
-
-
 
 
 

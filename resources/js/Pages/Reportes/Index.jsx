@@ -303,7 +303,7 @@ export default function Index() {
                     )}
                 </div>
 
-                {/* BOTONES PARA DESCARGAR EL PDF/EXCEL */}
+                {/* BOTONES PARA DESCARGAR EL PDF/EXCEL DESACTIVADOS*/}
                 <div className="table-panel" style={{ marginTop: '20px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                         <strong style={{ color: '#0f172a' }}>Exportar Resultados</strong>

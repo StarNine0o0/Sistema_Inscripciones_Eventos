@@ -13,7 +13,6 @@ class AuthController extends Controller
 {
     public function loginApi(Request $request)
     {
-        //Validar que nos envíen los datos requeridos
         $request->validate([
             'correo_institucional' => 'required|email',
             'contrasena' => 'required'
@@ -36,10 +35,10 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Generar el token de seguridad
+        // Generar el token de seguridad y lo pasamos cmo un texto plano para que lo pueda utilizar el movil 
         $token = $usuario->createToken('auth_token')->plainTextToken;
 
-        //Retornar el token y los datos del usuario (incluyendo su rol)
+        //Retornar el token y los datos del usuario 
         return response()->json([
             'mensaje' => 'Inicio de sesión exitoso',
             'token' => $token,
@@ -51,10 +50,10 @@ class AuthController extends Controller
     {
         Auth::logout();
 
-        // Invalida la sesión actual del usuario
+        // destuimos o invalidamos la sesión actual del usuario
         $request->session()->invalidate();
 
-        // Regenera el token CSRF por seguridad
+        // Regeneramos el campo del token csrf para limpiar la contraseña temprotal de la peticion 
         $request->session()->regenerateToken();
 
         return redirect('/login');
@@ -62,16 +61,13 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-     
         $request->validate([
-            //datos de entra da 
             'nombre_completo' => 'required|string|max:255',
             'correo_institucional' => 'required|email|unique:usuarios,correo_institucional',
             'contrasena' => 'required|string|min:6',
             'matricula_empleado' => 'required|string|unique:usuarios,matricula_empleado' 
         ]);
 
-        //crear el nuevo usuario 
         $usuario = Usuario::create([
             'id_rol' => 3,
             'nombre_completo' => $request->nombre_completo,
@@ -136,7 +132,7 @@ public function loginWeb(Request $request)
         return Inertia::render('Auth/RecuperarPassword');
     }
 
- //proceso de envio de correo 
+ /*proceso de envio de correo DESACTIVADO POR AHORA 
     public function sendResetLinkEmail(Request $request)
     {
         //validamos el ccoreo 
@@ -149,7 +145,7 @@ public function loginWeb(Request $request)
     }
     return back()->withErrors(['correo_institucional' => __($status)]);
     
-}
+} */
 
 
 }

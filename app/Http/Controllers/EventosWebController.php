@@ -20,7 +20,6 @@ class EventosWebController extends Controller
         $this->eventosRepository = $eventosRepository;
     }
 
-    // Retorna la vista principal del panel de eventos
     public function index(Request $request)
     {
         try {
@@ -58,12 +57,11 @@ class EventosWebController extends Controller
 
 
 
-    // Manenemos el store devolviendo JSOn para que el front pueda manejar la respuesta con fetch
     public function store(StoreEventoRequest $request)
     {
         try {
             $datos = $request->validated();
-            $datos['id_organizador']= Auth::id();
+            $datos['id_organizador']= Auth::id();//le asignamos el id del organizador que lo creeo
 
             $evento = $this->eventosRepository->registrarEvento(
                 $datos,
@@ -124,7 +122,6 @@ class EventosWebController extends Controller
         } catch (\Exception $e) {
             $codigo = $e->getCode() == 404 ? 404 : 422; // si el evento no se encuentra, devolvemos 404, si es otro error devolvemos 422
             return response()->json(['error' => $e->getMessage()], $codigo);
-          
         }
     }
 
