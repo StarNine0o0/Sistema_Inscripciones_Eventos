@@ -31,20 +31,24 @@
     <p class="subtitulo">Generado el {{ now()->format('d/m/Y H:i') }}</p>
 
     @if($tipoReporte === 'resumen_general')
-        <div>
-            <div class="resumen-caja">
-                <span class="resumen-numero">{{ $datos['total_eventos_publicados'] ?? 0 }}</span>
-                <span class="resumen-label">Eventos publicados</span>
-            </div>
-            <div class="resumen-caja">
-                <span class="resumen-numero">{{ $datos['total_inscripciones'] ?? 0 }}</span>
-                <span class="resumen-label">Inscripciones</span>
-            </div>
-            <div class="resumen-caja">
-                <span class="resumen-numero">{{ $datos['total_constancias_emitidas'] ?? 0 }}</span>
-                <span class="resumen-label">Constancias emitidas</span>
-            </div>
+    @php
+        $filasResumen = $datos instanceof \Illuminate\Support\Collection ? $datos->toArray() : (array) $datos;
+        $resumen = $filasResumen[0] ?? [];
+    @endphp
+    <div>
+        <div class="resumen-caja">
+            <span class="resumen-numero">{{ $resumen['total_eventos_publicados'] ?? 0 }}</span>
+            <span class="resumen-label">Eventos publicados</span>
         </div>
+        <div class="resumen-caja">
+            <span class="resumen-numero">{{ $resumen['total_inscripciones'] ?? 0 }}</span>
+            <span class="resumen-label">Inscripciones</span>
+        </div>
+        <div class="resumen-caja">
+            <span class="resumen-numero">{{ $resumen['total_constancias_emitidas'] ?? 0 }}</span>
+            <span class="resumen-label">Constancias emitidas</span>
+        </div>
+    </div>
 
     @elseif($tipoReporte === 'eventos_populares')
         <table>
