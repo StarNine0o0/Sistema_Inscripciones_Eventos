@@ -7,7 +7,7 @@ export default function Index({ usuarios, filtros }) {
 
     // Estados para búsqueda y filtrado
     const [busqueda, setBusqueda] = useState(filtros?.busqueda || '');
-    const [filtroRol, setFiltroRol] = useState(filtros?.rol || '');
+    const [filtroRol, setFiltroRol] = useState(filtros?.id_rol || '');
 
     // Estados para el formulario
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -19,11 +19,10 @@ export default function Index({ usuarios, filtros }) {
         id_rol: ''
     });
 
-    // Función para manejar la búsqueda dinámica
     const handleFiltros = (e) => {
         e.preventDefault();
-        // Le decimos a Inertia que recargue la página pasándole los filtros a Laravel
-        router.get('/usuarios', { busqueda, rol: filtroRol }, { preserveState: true });
+        // El backend espera 'id_rol', no 'rol'
+        router.get('/usuarios', { busqueda, id_rol: filtroRol }, { preserveState: true });
     };
 
     const handleSubmit = (e) => {
@@ -38,12 +37,28 @@ export default function Index({ usuarios, filtros }) {
     };
 
     const handleCambiarEstado = (id, estadoActual) => {
-        // Lógica para Activar / Desactivar
+        const nuevoEstado = estadoActual === 'Activo' ? 'Inactivo' : 'Activo';
         const accion = estadoActual === 'Activo' ? 'Desactivar' : 'Activar';
+        
         if (!confirm(`¿Seguro que deseas ${accion} este usuario?`)) return;
         
-        router.put(`/usuarios/${id}/estado`, { 
-            estado: estadoActual === 'Activo' ? 'Inactivo' : 'Activo' 
+        // Usamos la ruta DELETE (destroy) pero le mandamos el nuevo estado por data
+        router.delete(`/usuarios/${id}`, { 
+            data: { estado_usuario: nuevoEstado },
+            preserveScroll: true,
+            onSuccess: () => alert(`Usuario ${nuevoEstado.toLowerCase()} con éxito.`),
+            onError: (err) => alert(err.error || 'Error al cambiar estado')
+        });
+    };
+
+    const handleRestablecerContrasena = (id) => {
+        const nuevaContrasena = prompt("Ingresa la nueva contraseña (mínimo 6 caracteres):");
+        if (!nuevaContrasena) return;
+        if (nuevaContrasena.length < 6) return alert("La contraseña debe tener al menos 6 caracteres.");
+
+        router.put(`/usuarios/${id}/restablecer-contrasena`, { contrasena: nuevaContrasena }, {
+            preserveScroll: true,
+            onSuccess: () => alert('Contraseña restablecida correctamente.')
         });
     };
 
@@ -54,7 +69,7 @@ export default function Index({ usuarios, filtros }) {
             <div style={{ width: '250px', background: '#1f2937', color: 'white', padding: '20px' }}>
                 <h2>Mi Proyecto</h2>
                 <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '20px' }}>
-                    Conectado como: {usuarioLogeado.nombre} (Admin)
+                    Conectado como: {usuarioLogeado.nombre_completo} (Admin)
                 </div>
 
                 <ul style={{ listStyle: 'none', padding: 0, marginTop: '10px' }}>
@@ -72,6 +87,14 @@ export default function Index({ usuarios, filtros }) {
 
             {/* CONTENIDO PRINCIPAL */}
             <div style={{ flex: 1, padding: '30px', background: '#f3f4f6' }}>
+                
+                {/* MOSTRAR ERRORES DEL BACKEND */}
+                {errors?.error && (
+                    <div style={{ background: '#fecaca', color: '#991b1b', padding: '10px', marginBottom: '15px', borderRadius: '4px' }}>
+                        {errors.error}
+                    </div>
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h1>Gestión de Usuarios</h1>
                     <button 
@@ -82,7 +105,7 @@ export default function Index({ usuarios, filtros }) {
                     </button>
                 </div>
 
-                {/* BARRA DE BÚSQUEDA Y FILTROS (Basado en tu rúbrica) */}
+                {/* BARRA DE BÚSQUEDA Y FILTROS */}
                 <form onSubmit={handleFiltros} style={{ display: 'flex', gap: '10px', marginTop: '20px', background: 'white', padding: '15px', borderRadius: '8px' }}>
                     <input 
                         type="text" 
@@ -99,10 +122,9 @@ export default function Index({ usuarios, filtros }) {
                         <option value="">Todos los roles</option>
                         <option value="1">Administrador</option>
                         <option value="2">Organizador</option>
-                        {/* Agrega más roles si tu sistema los tiene */}
                     </select>
                     <button type="submit" style={{ padding: '8px 15px', background: '#4b5563', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                        Filtrar
+                        🔍 Filtrar
                     </button>
                 </form>
 
@@ -112,7 +134,7 @@ export default function Index({ usuarios, filtros }) {
                         <h3>Registrar Nuevo Usuario</h3>
                         <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
                             <input type="text" placeholder="Nombre completo" required value={formData.nombre_completo} onChange={e => setFormData({...formData, nombre_completo: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
-                            <input type="email" placeholder="Correo istitucional" required value={formData.correo_institucional} onChange={e => setFormData({...formData, correo_institucional: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                            <input type="email" placeholder="Correo institucional" required value={formData.correo_institucional} onChange={e => setFormData({...formData, correo_institucional: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
                             <input type="text" placeholder="Matrícula / No. Empleado" required value={formData.matricula_empleado} onChange={e => setFormData({...formData, matricula_empleado: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
                             <input type="password" placeholder="Contraseña" required value={formData.contrasena} onChange={e => setFormData({...formData, contrasena: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
 
@@ -148,19 +170,24 @@ export default function Index({ usuarios, filtros }) {
                                     <tr key={user.id_usuario} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '15px 0' }}>{user.matricula_empleado}</td>
                                         <td>{user.nombre_completo}</td>
-                                        <td>{user.correo}</td>
-                                        <td>{user.id_rol === 1 ? 'Admin' : 'Organizador'}</td>
+                                        {/* Corrección de nombre de variable */}
+                                        <td>{user.correo_institucional}</td> 
+                                        {/* Accediendo a la relación del rol si existe, si no, fallback al ID */}
+                                        <td>{user.rol ? user.rol.nombre_rol : (user.id_rol === 1 ? 'Admin' : 'Organizador')}</td>
                                         <td>
-                                            <span style={{ color: user.estado === 'Activo' ? 'green' : 'red', fontWeight: 'bold' }}>
-                                                {user.estado}
+                                            <span style={{ color: user.estado_usuario === 'Activo' ? 'green' : 'red', fontWeight: 'bold' }}>
+                                                {user.estado_usuario}
                                             </span>
                                         </td>
-                                        <td style={{ display: 'flex', gap: '5px' }}>
-                                            {/* Botones de acción requeridos en tu rúbrica */}
+                                        <td style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
                                             <Link href={`/usuarios/${user.id_usuario}`} style={{ background: '#3b82f6', color: 'white', padding: '5px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px' }}>Ver Perfil</Link>
-                                            <button style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Editar</button>
-                                            <button onClick={() => handleCambiarEstado(user.id_usuario, user.estado)} style={{ background: user.estado === 'Activo' ? '#ef4444' : '#10b981', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
-                                                {user.estado === 'Activo' ? 'Desactivar' : 'Activar'}
+                                            
+                                            <button onClick={() => handleRestablecerContrasena(user.id_usuario)} style={{ background: '#6366f1', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
+                                                🔑 Contraseña
+                                            </button>
+
+                                            <button onClick={() => handleCambiarEstado(user.id_usuario, user.estado_usuario)} style={{ background: user.estado_usuario === 'Activo' ? '#ef4444' : '#10b981', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
+                                                {user.estado_usuario === 'Activo' ? 'Desactivar' : 'Activar'}
                                             </button>
                                         </td>
                                     </tr>

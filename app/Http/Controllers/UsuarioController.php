@@ -17,11 +17,10 @@ class UsuarioController extends Controller
         $this->usuariosRepository = $usuariosRepository;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $resultado = $this->usuariosRepository->obtenerUsuarios();
-            
+            $resultado = $this->usuariosRepository->obtenerUsuarios($request->all());
             return Inertia::render('Usuarios/Index', [
                 'usuarios' => $resultado['usuarios']
             ]);
@@ -66,14 +65,35 @@ class UsuarioController extends Controller
         }
     }
 
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
-       try {
-            $this->usuariosRepository->eliminarUsuario($id);
+        // Si el frontend no especifica un estado lo pasmo a inactivo por defecto
+        $nuevoEstado = $request->estado_usuario ?? 'Inactivo';
+
+        try {
+            $this->usuariosRepository->cambiarEstado($id, $nuevoEstado);
             
-            return redirect()->back()->with('success', 'Usuario desactivado correctamente.');
+            return redirect()->back()->with('success', 'Estado del usuario "eliminado" correctamente.');
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => $e->getMessage()]);
         }
     }
+
+    public function restablecerContrasena(Request $request, int $id)
+{
+    $request->validate([
+        'contrasena' => 'required|string|min:6'
+    ]);
+
+    try {
+        $this->usuariosRepository->restablecerContrasena($id, $request->contrasena);
+
+        return redirect()->back()->with('success', 'Contraseña restablecida con éxito.');
+    } catch (\Exception $e) {
+        return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+    }
+}
+
+
+
 }

@@ -271,21 +271,21 @@ class InscripcionController extends Controller
     {
         $participante = $request->user();
 
-        // 1. Regla de Seguridad: Verificar que el estudiante solo cancele SU propia inscripción
+        // Verificar que el estudiante solo cancele SU propia inscripción
         if ($inscripcion->id_participante !== $participante->id_usuario) {
             return response()->json([
                 'mensaje' => 'Acceso denegado: No puedes cancelar una inscripción que no es tuya.',
             ], 403);
         }
 
-        // 2. Verificar que no esté cancelada ya
+        // Verificar que no esté cancelada ya
         if ($inscripcion->estado_inscripcion === 'Cancelada') {
             return response()->json([
                 'mensaje' => 'Esta inscripción ya se encuentra cancelada.',
             ], 422);
         }
 
-        // 3. Regla Módulo 8: Bloquear cancelación el mismo día del evento (o si ya pasó)
+        // Regla Módulo 8: Bloquear cancelación el mismo día del evento (o si ya pasó)
         $evento = $inscripcion->evento;
         
         // Comparamos solo la parte de la fecha (Año-Mes-Día) ignorando la hora

@@ -51,6 +51,7 @@ Route::get('/usuarios/{usuario}', [UsuarioController::class, 'show']);
 Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update']);
 Route::delete('/usuarios/{usuario}', [UsuarioController::class, 'destroy']);
 Route::post('/usuarios', [UsuarioController::class, 'store']);
+Route::put('/usuarios/{id}/restablecer-contrasena', [UsuarioController::class, 'restablecerContrasena']);
 
 
 

@@ -6,17 +6,41 @@ use App\Models\Usuario;
 
 class UsuariosRepository
 {
-    public function obtenerUsuarios()
+    public function obtenerUsuarios(array $filtros = [])
     {
         try {
-            $usuarios = Usuario::paginate(10);
+            $query = Usuario::query();
+
+            //  Filtro de búsqueda (por nombre o correo)
+            if (isset($filtros['busqueda'])) {
+                $termino = $filtros['busqueda'];
+            
+                //usamos la funcion de interna de lavrel para buscar en la consulta la haga en ambas columnas alavez y que el orwhere no choque con rol 
+                $query->where(function ($q) use ($termino) {
+                    $q->where('nombre_completo', 'like', '%' . $termino . '%')
+                    ->orWhere('correo_institucional', 'like', '%' . $termino . '%');
+                });
+            }
+
+            // Filtro por Rol
+            if (isset($filtros['id_rol'])) {
+                $query->where('id_rol', $filtros['id_rol']);
+            }
+
+            //  Filtro por Estado
+            if (isset($filtros['estado_usuario'])) {
+                $query->where('estado_usuario', $filtros['estado_usuario']);
+            }
+            
+            $usuarios = $query->with('rol')->paginate(10);
             return [
                 "mensaje" => "Usuarios obtenidos correctamente",
                 "usuarios" => $usuarios
             ];
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al obtener los usuarios: ' . $e->getMessage()], 500);
+            throw new \Exception('Error al obtener los usuarios: ' . $e->getMessage(), 500);
         }
+        
     }
 
     public function registrarUsuario(array $data)
@@ -78,21 +102,58 @@ class UsuariosRepository
         }
     }
 
-    public function eliminarUsuario(int $id)
+   public function cambiarEstado(int $id, string $nuevoEstado)
     {
         try {
+            
             $usuario = $this->obtenerUsuario($id)['usuario'];
             
-            // Hacemos el "Soft Delete"
+            // validamsos que no tenga un evento activo o publicado
+            if ($nuevoEstado === 'Inactivo') {
+                
+                $tieneEventosActivos = $usuario->eventosOrganizados()
+                    ->whereIn('estado_evento', ['Activo', 'Publicado'])
+                    ->exists();
+
+                if ($tieneEventosActivos) {
+                    throw new \Exception('No se puede desactivar la cuenta: el usuario tiene eventos publicados o activos como organizador.', 422);
+                }
+            }
+
             $usuario->update([
-                'estado_usuario' => 'Inactivo'
+                'estado_usuario' => $nuevoEstado
             ]);
 
             return [
-                "mensaje" => "Usuario desactivado correctamente"
+                "mensaje" => "El estado del usuario ha cambiado a " . $nuevoEstado
             ];
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al desactivar el usuario: ' . $e->getMessage()], 500);
+            $codigo = $e->getCode() ?: 500;
+            throw new \Exception($e->getMessage(), $codigo);
         }
     }
+
+    public function restablecerContrasena(int $id, string $nuevaContrasena)
+{
+    try {
+        $usuario = $this->obtenerUsuario($id)['usuario'];
+
+        $usuario->update([
+            'contrasena' => bcrypt($nuevaContrasena)
+        ]);
+
+        return [
+            "mensaje" => "Contraseña restablecida correctamente"
+        ];
+    } catch (\Exception $e) {
+        $codigo = $e->getCode() ?: 500;
+        throw new \Exception('Error al restablecer contraseña: ' . $e->getMessage(), $codigo);
+    }
+}
+
+
+
+
+
+
 }
