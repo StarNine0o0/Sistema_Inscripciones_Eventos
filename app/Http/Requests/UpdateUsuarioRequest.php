@@ -6,6 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 
 class UpdateUsuarioRequest extends FormRequest
@@ -25,13 +26,23 @@ class UpdateUsuarioRequest extends FormRequest
      */
     public function rules(): array
     {
-        $usuario = $this->route('usuario');// Obtener el usuario de la ruta
+        // Obtiene la ID desde la ruta (/usuarios/5), ya sea string o Modelo
+        $usuarioParam = $this->route('usuario');
+        $idUsuario = is_object($usuarioParam) ? $usuarioParam->id_usuario : $usuarioParam;
 
         return [
             'nombre_completo' => 'required|string|max:255',
-            'correo_institucional' => 'required|email|unique:usuarios,correo_institucional,' . $usuario->id_usuario . ',id_usuario',
-            'matricula_empleado' => 'required|string|unique:usuarios,matricula_empleado,' . $usuario->id_usuario . ',id_usuario',
-            'id_rol' => 'required|integer|exists:roles,id_rol'
+            'correo_institucional' => [
+                'required',
+                'email',
+                Rule::unique('usuarios', 'correo_institucional')->ignore($idUsuario, 'id_usuario')
+            ],
+            'matricula_empleado' => [
+                'required',
+                'string',
+                Rule::unique('usuarios', 'matricula_empleado')->ignore($idUsuario, 'id_usuario')
+            ],
+            'id_rol' => 'required|integer',
         ];
     }
 

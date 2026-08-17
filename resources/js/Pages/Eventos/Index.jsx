@@ -2,47 +2,44 @@ import React, { useState } from 'react';
 import { router, Link, usePage } from '@inertiajs/react'; 
 import axios from 'axios';
 
-
 import GestionInscripciones from './GestionInscripciones';
 import FormularioEventoModal from './FormularioEventoModal';
+import '../Dashboard/Dashboard.css';
 
 export default function Index({ eventos, sedes, categorias, filtros }) {
-
-    // Extraemos al usuario logeado usando Inertia
     const { auth } = usePage().props;
     const usuario = auth?.user || {};
 
-    // Estados para controlar qué modal está abierto
-    const [eventoParaGestionar, setEventoParaGestionar] = useState(null); // Modal Inscripciones
-    const [modalFormularioAbierto, setModalFormularioAbierto] = useState(false); // Modal Crear/Editar
-    const [eventoEnEdicion, setEventoEnEdicion] = useState(null); // Datos del evento a editar
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [eventoParaGestionar, setEventoParaGestionar] = useState(null);
+    const [modalFormularioAbierto, setModalFormularioAbierto] = useState(false);
+    const [eventoEnEdicion, setEventoEnEdicion] = useState(null);
 
-    //funciones de filtros isset
     const [valoresFiltros, setValoresFiltros] = useState({
-        id_categoria: '',
-        estado_evento: '',
-        fecha_inicio: '',
+        id_categoria: filtros?.id_categoria || '',
+        estado_evento: filtros?.estado_evento || '',
+        fecha_inicio: filtros?.fecha_inicio || '',
     });
 
-    //mandamos las variables por la url y con el preserveState: true, replace: true para que no se recargue la pagina o parpadie para mejor ux
+    const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+
     const aplicarFiltros = (e) => {
         e.preventDefault();
         router.get('/eventos', valoresFiltros, { preserveState: true, replace: true });
-    }
+    };
     
     const limpiarFiltros = () => {
         setValoresFiltros({ id_categoria: '', estado_evento: '', fecha_inicio: '' });
         router.get('/eventos', {}, { preserveState: true, replace: true });
     };
 
-    // Funciones para abrir los modales
     const handleAbrirNuevo = () => {
-        setEventoEnEdicion(null); // Null significa que es un evento nuevo
+        setEventoEnEdicion(null);
         setModalFormularioAbierto(true);
     };
 
     const handleEditar = (evento) => {
-        setEventoEnEdicion(evento); // Le pasamos todo el evento para que se llene
+        setEventoEnEdicion(evento);
         setModalFormularioAbierto(true);
     };
 
@@ -71,63 +68,97 @@ export default function Index({ eventos, sedes, categorias, filtros }) {
         }
     };
 
+    const handleLogout = () => {
+            router.post('/logout');
+        };
+
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-            
-            {/* SIDEBAR DINÁMICO */}
-            <div style={{ width: '250px', background: '#1f2937', color: 'white', padding: '20px' }}>
-                <h2>Mi Proyecto</h2>
-                
-                <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '20px' }}>
-                    Conectado como: {usuario.nombre} ({usuario.id_rol === 1 ? 'Admin' : 'Organizador'})
+        <div className="dashboard-container">
+            {/* SIDEBAR LATERAL AZUL */}
+            <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+                <div className="sidebar-content">
+                    <div className="sidebar-header">
+                        <div className="brand-info">
+                            <h2 className="brand-title">UniEvents</h2>
+                            <span className="brand-subtitle">
+                                {usuario.nombre} ({usuario.id_rol === 1 ? 'Admin' : 'Organizador'})
+                            </span>
+                        </div>
+                        <button 
+                            className="menu-toggle" 
+                            onClick={toggleSidebar} 
+                            title={isCollapsed ? "Expandir menú" : "Colapsar menú"}
+                        >
+                            <span className="material-symbols-outlined">
+                                {isCollapsed ? 'menu' : 'chevron_left'}
+                            </span>
+                        </button>
+                    </div>
+
+                    <nav className="sidebar-nav">
+                        {usuario.id_rol === 2 && (
+                            <Link href="/eventos" className="nav-item active">
+                                <span className="material-symbols-outlined nav-icon">calendar_month</span>
+                                <span className="nav-text">Eventos</span>
+                            </Link>
+                        )}
+
+                        {usuario.id_rol === 1 && (
+                            <>
+                                <Link href="/usuarios" className="nav-item">
+                                    <span className="material-symbols-outlined nav-icon">group</span>
+                                    <span className="nav-text">Usuarios</span>
+                                </Link>
+                                <Link href="/categorias" className="nav-item">
+                                    <span className="material-symbols-outlined nav-icon">category</span>
+                                    <span className="nav-text">Categorías</span>
+                                </Link>
+                                <Link href="/sedes" className="nav-item">
+                                    <span className="material-symbols-outlined nav-icon">apartment</span>
+                                    <span className="nav-text">Sedes</span>
+                                </Link>
+                                <Link href="/eventos" className="nav-item active">
+                                    <span className="material-symbols-outlined nav-icon">calendar_month</span>
+                                    <span className="nav-text">Eventos</span>
+                                </Link>
+                            </>
+                        )}
+                    </nav>
                 </div>
 
-                <ul style={{ listStyle: 'none', padding: 0, marginTop: '10px' }}>
-                {usuario.id_rol === 2 && (
-                    <li style={{ marginBottom: '15px' }}>
-                        <Link href="/eventos" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 'bold' }}>
-                            📅 Eventos
-                        </Link>
-                    </li>
-                )}
-                    {usuario.id_rol === 1 && (
-                        <>
-                            <li style={{ marginBottom: '15px' }}>
-                                <Link href="/usuarios" style={{ color: 'white', textDecoration: 'none' }}>👥 Usuarios</Link>
-                            </li>
-                            <li style={{ marginBottom: '15px' }}>
-                                <Link href="/categorias" style={{ color: 'white', textDecoration: 'none' }}>🏷️ Categorías</Link>
-                            </li>
-                            <li style={{ marginBottom: '15px' }}>
-                                <Link href="/sedes" style={{ color: 'white', textDecoration: 'none' }}>🏢 Sedes</Link>
-                            </li>
-                        </>
-                    )}
-                </ul>
-            </div>
+                {/* FOOTER DEL SIDEBAR */}
+                <div className="sidebar-footer">
+                    <button onClick={handleLogout} className="btn-logout">
+                        <span className="material-symbols-outlined">logout</span>
+                        <span className="nav-text">Cerrar Sesión</span>
+                    </button>
+                </div>
+            </aside>
 
-            {/* CONTENIDO PRINCIPAL */}
-            <div style={{ flex: 1, padding: '30px', background: '#f3f4f6' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1>Gestión de Eventos</h1>
-                    <button 
-                        onClick={handleAbrirNuevo}
-                        style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
-                    >
-                        + Nuevo Evento
+            {/* ÁREA DE CONTENIDO PRINCIPAL */}
+            <main className="main-content">
+                <div className="top-bar">
+                    <div>
+                        <h1 className="page-title">Gestión de Eventos</h1>
+                        <p className="page-subtitle">Administra los eventos de la plataforma</p>
+                    </div>
+                    <button onClick={handleAbrirNuevo} className="btn-primary">
+                        <span className="material-symbols-outlined">add</span>
+                        Nuevo Evento
                     </button>
                 </div>
 
-                 {/* NUEVO: BARRA DE FILTROS */}
-                <div style={{ background: 'white', marginTop: '20px', padding: '15px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                    <form onSubmit={aplicarFiltros} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                        
+                {/* BARRA DE FILTROS 
+                <div className="table-panel" style={{ marginBottom: '24px' }}>
+                    <form onSubmit={aplicarFiltros} style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Categoría:</label>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>
+                                Categoría
+                            </label>
                             <select 
                                 value={valoresFiltros.id_categoria} 
                                 onChange={e => setValoresFiltros({...valoresFiltros, id_categoria: e.target.value})}
-                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '150px' }}
+                                style={{ padding: '8px 14px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '14px', outline: 'none' }}
                             >
                                 <option value="">Todas</option>
                                 {categorias && categorias.map(cat => (
@@ -137,11 +168,13 @@ export default function Index({ eventos, sedes, categorias, filtros }) {
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Estado:</label>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>
+                                Estado
+                            </label>
                             <select 
                                 value={valoresFiltros.estado_evento} 
                                 onChange={e => setValoresFiltros({...valoresFiltros, estado_evento: e.target.value})}
-                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '150px' }}
+                                style={{ padding: '8px 14px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '14px', outline: 'none' }}
                             >
                                 <option value="">Todos</option>
                                 <option value="Borrador">Borrador</option>
@@ -152,31 +185,33 @@ export default function Index({ eventos, sedes, categorias, filtros }) {
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>A partir de la fecha:</label>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>
+                                A partir de la fecha
+                            </label>
                             <input 
                                 type="date" 
                                 value={valoresFiltros.fecha_inicio}
                                 onChange={e => setValoresFiltros({...valoresFiltros, fecha_inicio: e.target.value})}
-                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                style={{ padding: '8px 14px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '14px', outline: 'none' }}
                             />
                         </div>
 
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <button type="submit" style={{ padding: '8px 15px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                                🔍 Filtrar
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button type="submit" className="btn-primary" style={{ padding: '8px 18px', fontSize: '14px' }}>
+                                Filtrar
                             </button>
-                            <button type="button" onClick={limpiarFiltros} style={{ padding: '8px 15px', background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                                🧹 Limpiar
+                            <button type="button" onClick={limpiarFiltros} className="btn-secondary" style={{ padding: '8px 18px', fontSize: '14px' }}>
+                                Limpiar
                             </button>
                         </div>
                     </form>
-                </div>
+                </div>*/}
 
                 {/* TABLA DE EVENTOS */}
-                <div style={{ background: 'white', marginTop: '30px', borderRadius: '8px', padding: '20px', overflowX: 'auto' }}>
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <div className="table-panel">
+                    <table className="data-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid #eee' }}>
+                            <tr>
                                 <th>ID</th>
                                 <th>Título</th>
                                 <th>Fecha Inicio</th>
@@ -187,81 +222,108 @@ export default function Index({ eventos, sedes, categorias, filtros }) {
                         <tbody>
                             {eventos.data && eventos.data.length > 0 ? (
                                 eventos.data.map(evento => (
-                                    <tr key={evento.id_evento} style={{ borderBottom: '1px solid #eee' }}>
-                                        <td style={{ padding: '10px 0' }}>{evento.id_evento}</td>
-                                        <td>{evento.nombre_evento}</td>
+                                    <tr key={evento.id_evento}>
+                                        <td>{evento.id_evento}</td>
+                                        <td style={{ fontWeight: '600' }}>{evento.nombre_evento}</td>
                                         <td>{new Date(evento.fecha_inicio).toLocaleString()}</td>
                                         <td>
-                                            <strong style={{ 
-                                                color: evento.estado_evento === 'Publicado' ? 'green' : 
-                                                    evento.estado_evento === 'Cancelado' ? 'red' : 'gray' 
-                                            }}>
+                                            <span className={`status-tag ${evento.estado_evento === 'Publicado' ? 'active' : 'inactive'}`}>
                                                 {evento.estado_evento}
-                                            </strong>
+                                            </span>
                                         </td>
                                         <td>
-                                            {/* BOTONES DE ACCIÓN */}
-                                            <button 
-                                                onClick={() => setEventoParaGestionar(evento)} 
-                                                style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer', borderRadius: '4px' }}>
-                                                👥 Inscripciones
-                                            </button>
-
-                                            <button 
-                                                onClick={() => handleEditar(evento)} 
-                                                style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer', borderRadius: '4px' }}>
-                                                ✏️ Editar
-                                            </button>
-
-                                            {evento.estado_evento === 'Borrador' && (
-                                                <button onClick={() => handleCambiarEstado(evento.id_evento, 'Publicado')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer', borderRadius: '4px' }}>
-                                                    Publicar
+                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                                <button 
+                                                    onClick={() => setEventoParaGestionar(evento)} 
+                                                    className="btn-secondary" 
+                                                    title="Gestión de Inscripciones"
+                                                    style={{ padding: '6px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                >
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>group</span>
                                                 </button>
-                                            )}
-                                            {evento.estado_evento === 'Publicado' && (
-                                                <button onClick={() => handleCambiarEstado(evento.id_evento, 'Cancelado')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', marginRight: '5px', cursor: 'pointer', borderRadius: '4px' }}>
-                                                    Cancelar
+
+                                                <button 
+                                                    onClick={() => handleEditar(evento)} 
+                                                    className="btn-secondary" 
+                                                    title="Editar Evento"
+                                                    style={{ padding: '6px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                >
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
                                                 </button>
-                                            )}
-                                            
-                                            <button onClick={() => handleEliminar(evento.id_evento)} style={{ background: '#111827', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer', borderRadius: '4px' }}>
-                                                Eliminar
-                                            </button>
+
+                                                {evento.estado_evento === 'Borrador' && (
+                                                    <button 
+                                                        onClick={() => handleCambiarEstado(evento.id_evento, 'Publicado')} 
+                                                        className="btn-primary" 
+                                                        title="Publicar Evento"
+                                                        style={{ padding: '6px 8px', backgroundColor: '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>publish</span>
+                                                    </button>
+                                                )}
+
+                                                {evento.estado_evento === 'Publicado' && (
+                                                    <button 
+                                                        onClick={() => handleCambiarEstado(evento.id_evento, 'Cancelado')} 
+                                                        className="btn-primary" 
+                                                        title="Cancelar Evento"
+                                                        style={{ padding: '6px 8px', backgroundColor: '#dc2626', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel</span>
+                                                    </button>
+                                                )}
+                                                
+                                                <button 
+                                                    onClick={() => handleEliminar(evento.id_evento)} 
+                                                    className="btn-secondary" 
+                                                    title="Eliminar Evento"
+                                                    style={{ padding: '6px 8px', color: '#b91c1c', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                >
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>No hay eventos registrados.</td>
+                                    <td colSpan="5" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                                        No hay eventos registrados.
+                                    </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                     
-                    <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                    {/* PAGINACIÓN */}
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '8px' }}>
                         {eventos.links && eventos.links.map((link, index) => (
                             link.url ? (
                                 <Link 
                                     key={index} 
                                     href={link.url} 
-                                    style={{ padding: '5px 10px', background: link.active ? '#3b82f6' : '#e5e7eb', color: link.active ? 'white' : 'black', textDecoration: 'none', borderRadius: '4px' }}
+                                    className={`btn-secondary ${link.active ? 'active' : ''}`}
+                                    style={{ 
+                                        padding: '6px 12px', 
+                                        fontSize: '13px', 
+                                        backgroundColor: link.active ? '#1e3a8a' : '#ffffff',
+                                        color: link.active ? '#ffffff' : '#334155'
+                                    }}
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                 />
                             ) : (
                                 <span 
                                     key={index} 
-                                    style={{ padding: '5px 10px', background: '#f3f4f6', color: '#9ca3af', borderRadius: '4px' }}
+                                    style={{ padding: '6px 12px', fontSize: '13px', color: '#94a3b8' }}
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                 />
                             )
                         ))}
                     </div>
                 </div>
-            </div>
-            
-            {/* RENDERIZADO DE MODALES */}
+            </main>
 
-            {/* Modal 1: Crear/Editar Evento */}
+            {/* MODALES REUTILIZABLES */}
             {modalFormularioAbierto && (
                 <FormularioEventoModal 
                     eventoParaEditar={eventoEnEdicion}
@@ -271,13 +333,12 @@ export default function Index({ eventos, sedes, categorias, filtros }) {
                 />
             )}
 
-            {/* Modal 2: Gestionar Inscripciones */} 
             {eventoParaGestionar && (
                 <GestionInscripciones 
                     evento={eventoParaGestionar}
                     onClose={() => setEventoParaGestionar(null)} 
                 />
-            )}               
+            )}              
         </div>
     );
 }

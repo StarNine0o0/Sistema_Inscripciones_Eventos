@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
 import { router, Link, usePage } from '@inertiajs/react';
+import '../../../css/app.css';
 
 export default function Index({ usuarios, filtros }) {
     const { auth, errors } = usePage().props;
     const usuarioLogeado = auth?.user || {};
 
-    // Estados para búsqueda y filtrado
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [mostrarFormulario, setMostrarFormulario] = useState(false);
+
+    // Estado para modal de edición
+    const [usuarioEditando, setUsuarioEditando] = useState(null);
+
+    // Estado para preview al hacer hover (Tooltip)
+    const [previewUsuario, setPreviewUsuario] = useState(null);
+    const [posicionTooltip, setPosicionTooltip] = useState({ top: 0, left: 0 });
+
+    // Estados para búsqueda y filtrado local en el frontend
     const [busqueda, setBusqueda] = useState(filtros?.busqueda || '');
     const [filtroRol, setFiltroRol] = useState(filtros?.rol || '');
 
-    // Estados para el formulario
-    const [mostrarFormulario, setMostrarFormulario] = useState(false);
+    // Formulario de creación
     const [formData, setFormData] = useState({
         nombre_completo: '',
         correo_institucional: '',
@@ -19,170 +29,491 @@ export default function Index({ usuarios, filtros }) {
         id_rol: ''
     });
 
-    // Función para manejar la búsqueda dinámica
-    const handleFiltros = (e) => {
-        e.preventDefault();
-        // Le decimos a Inertia que recargue la página pasándole los filtros a Laravel
-        router.get('/usuarios', { busqueda, rol: filtroRol }, { preserveState: true });
+    const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+
+    // Cerrar Sesión
+    const handleLogout = () => {
+        router.post('/logout');
     };
 
+    // FILTRADO EN TIEMPO REAL (FRONTEND)
+    const listaUsuarios = Array.isArray(usuarios) ? usuarios : (usuarios?.data || []);
+
+    const usuariosFiltrados = listaUsuarios.filter((user) => {
+        const termino = busqueda.toLowerCase().trim();
+
+        const coincideNombre = user.nombre_completo?.toLowerCase().includes(termino);
+        const coincideCorreo = (user.correo || user.correo_institucional)?.toLowerCase().includes(termino);
+        const coincideMatricula = user.matricula_empleado?.toLowerCase().includes(termino);
+        
+        const coincideRol = filtroRol === '' || String(user.id_rol) === String(filtroRol);
+        const coincideTexto = termino === '' || coincideNombre || coincideCorreo || coincideMatricula;
+
+        return coincideTexto && coincideRol;
+    });
+
+    const handleFiltros = (e) => {
+        e.preventDefault();
+    };
+
+    // Crear Usuario
     const handleSubmit = (e) => {
         e.preventDefault();
         router.post('/usuarios', formData, {
             onSuccess: () => {
                 setMostrarFormulario(false);
-                setFormData({ nombre_completo: '', correo_institucional: '', matricula_empleado: '', contrasena: '', id_rol: '' });
+                setFormData({
+                    nombre_completo: '',
+                    correo_institucional: '',
+                    matricula_empleado: '',
+                    contrasena: '',
+                    id_rol: ''
+                });
                 alert('Usuario registrado correctamente');
             }
         });
     };
 
-    const handleCambiarEstado = (id, estadoActual) => {
-        // Lógica para Activar / Desactivar
-        const accion = estadoActual === 'Activo' ? 'Desactivar' : 'Activar';
-        if (!confirm(`¿Seguro que deseas ${accion} este usuario?`)) return;
-        
-        router.put(`/usuarios/${id}/estado`, { 
-            estado: estadoActual === 'Activo' ? 'Inactivo' : 'Activo' 
+    // Editar Usuario
+    const handleAbrirEditar = (user) => {
+        setUsuarioEditando({
+            id_usuario: user.id_usuario,
+            nombre_completo: user.nombre_completo || '',
+            correo_institucional: user.correo_institucional || user.correo || '',
+            matricula_empleado: user.matricula_empleado || '',
+            id_rol: user.id_rol || ''
         });
     };
 
+    const handleUpdate = (e) => {
+        e.preventDefault();
+        router.put(`/usuarios/${usuarioEditando.id_usuario}`, usuarioEditando, {
+            onSuccess: () => {
+                setUsuarioEditando(null);
+                alert('Usuario actualizado correctamente');
+            }
+        });
+    };
+
+    // Activar / Desactivar Usuario
+    const handleCambiarEstado = (id, estadoActual) => {
+        const nuevoEstado = estadoActual === 'Activo' ? 'Inactivo' : 'Activo';
+        const accion = estadoActual === 'Activo' ? 'Desactivar' : 'Activar';
+
+        if (!confirm(`¿Seguro que deseas ${accion} este usuario?`)) return;
+
+        router.put(`/usuarios/${id}/estado`, { estado: nuevoEstado }, {
+            preserveScroll: true,
+        });
+    };
+
+    // Handlers para el tooltip flotante con posición fija en viewport
+    const handleMouseEnter = (e, user) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setPosicionTooltip({
+            top: rect.top - 100,
+            left: rect.right - 260
+        });
+        setPreviewUsuario(user);
+    };
+
+    const handleMouseLeave = () => {
+        setPreviewUsuario(null);
+    };
+
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-            
-            {/* SIDEBAR */}
-            <div style={{ width: '250px', background: '#1f2937', color: 'white', padding: '20px' }}>
-                <h2>Mi Proyecto</h2>
-                <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '20px' }}>
-                    Conectado como: {usuarioLogeado.nombre} (Admin)
+        <div className="dashboard-container">
+            {/* SIDEBAR LATERAL */}
+            <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+                <div className="sidebar-content">
+                    <div className="sidebar-header">
+                        {!isCollapsed && (
+                            <div className="brand-info">
+                                <h2 className="brand-title">UniEvents</h2>
+                                <span className="brand-subtitle">
+                                    {usuarioLogeado.nombre} ({usuarioLogeado.id_rol === 1 ? 'Admin' : 'Organizador'})
+                                </span>
+                            </div>
+                        )}
+                        <button 
+                            className="menu-toggle" 
+                            onClick={toggleSidebar} 
+                            title={isCollapsed ? "Expandir menú" : "Colapsar menú"}
+                        >
+                            <span className="material-symbols-outlined">
+                                {isCollapsed ? 'menu' : 'chevron_left'}
+                            </span>
+                        </button>
+                    </div>
+
+                    <nav className="sidebar-nav">
+                        {usuarioLogeado.id_rol === 2 && (
+                            <Link href="/eventos" className="nav-item" title={isCollapsed ? "Eventos" : ""}>
+                                <span className="material-symbols-outlined nav-icon">calendar_month</span>
+                                {!isCollapsed && <span className="nav-text">Eventos</span>}
+                            </Link>
+                        )}
+
+                        {usuarioLogeado.id_rol === 1 && (
+                            <>
+                                <Link href="/usuarios" className="nav-item active" title={isCollapsed ? "Usuarios" : ""}>
+                                    <span className="material-symbols-outlined nav-icon">group</span>
+                                    {!isCollapsed && <span className="nav-text">Usuarios</span>}
+                                </Link>
+                                <Link href="/categorias" className="nav-item" title={isCollapsed ? "Categorías" : ""}>
+                                    <span className="material-symbols-outlined nav-icon">category</span>
+                                    {!isCollapsed && <span className="nav-text">Categorías</span>}
+                                </Link>
+                                <Link href="/sedes" className="nav-item" title={isCollapsed ? "Sedes" : ""}>
+                                    <span className="material-symbols-outlined nav-icon">apartment</span>
+                                    {!isCollapsed && <span className="nav-text">Sedes</span>}
+                                </Link>
+                                <Link href="/eventos" className="nav-item" title={isCollapsed ? "Eventos" : ""}>
+                                    <span className="material-symbols-outlined nav-icon">calendar_month</span>
+                                    {!isCollapsed && <span className="nav-text">Eventos</span>}
+                                </Link>
+                            </>
+                        )}
+                    </nav>
                 </div>
 
-                <ul style={{ listStyle: 'none', padding: 0, marginTop: '10px' }}>
-                    <li style={{ marginBottom: '15px' }}>
-                        <Link href="/usuarios" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 'bold' }}>👥 Usuarios</Link>
-                    </li>
-                    <li style={{ marginBottom: '15px' }}>
-                        <Link href="/categorias" style={{ color: 'white', textDecoration: 'none' }}>🏷️ Categorías</Link>
-                    </li>
-                    <li style={{ marginBottom: '15px' }}>
-                        <Link href="/sedes" style={{ color: 'white', textDecoration: 'none' }}>🏢 Sedes</Link>
-                    </li>
-                </ul>
-            </div>
+                {/* BOTÓN CERRAR SESIÓN */}
+                <div className="sidebar-footer">
+                    <button onClick={handleLogout} className="btn-logout" title={isCollapsed ? "Cerrar Sesión" : ""}>
+                        <span className="material-symbols-outlined nav-icon">logout</span>
+                        {!isCollapsed && <span className="nav-text">Cerrar Sesión</span>}
+                    </button>
+                </div>
+            </aside>
 
             {/* CONTENIDO PRINCIPAL */}
-            <div style={{ flex: 1, padding: '30px', background: '#f3f4f6' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1>Gestión de Usuarios</h1>
-                    <button 
-                        onClick={() => setMostrarFormulario(!mostrarFormulario)}
-                        style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+            <main className="main-content">
+                <div className="top-bar">
+                    <div>
+                        <h1 className="page-title">Gestión de Usuarios</h1>
+                        <p className="page-subtitle">Administra los usuarios, roles y accesos a la plataforma</p>
+                    </div>
+                    <button
+                        onClick={() => setMostrarFormulario(true)}
+                        className="btn-primary"
                     >
-                        {mostrarFormulario ? 'Cancelar' : '+ Nuevo Usuario'}
+                        <span className="material-symbols-outlined">person_add</span>
+                        Nuevo Usuario
                     </button>
                 </div>
 
-                {/* BARRA DE BÚSQUEDA Y FILTROS (Basado en tu rúbrica) */}
-                <form onSubmit={handleFiltros} style={{ display: 'flex', gap: '10px', marginTop: '20px', background: 'white', padding: '15px', borderRadius: '8px' }}>
-                    <input 
-                        type="text" 
-                        placeholder="Buscar por nombre o correo..." 
-                        value={busqueda}
-                        onChange={e => setBusqueda(e.target.value)}
-                        style={{ flex: 2, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                    />
-                    <select 
-                        value={filtroRol} 
-                        onChange={e => setFiltroRol(e.target.value)}
-                        style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                    >
-                        <option value="">Todos los roles</option>
-                        <option value="1">Administrador</option>
-                        <option value="2">Organizador</option>
-                        {/* Agrega más roles si tu sistema los tiene */}
-                    </select>
-                    <button type="submit" style={{ padding: '8px 15px', background: '#4b5563', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                        Filtrar
-                    </button>
-                </form>
+                {/* BUSCADOR Y FILTROS */}
+                <div className="table-panel filter-panel">
+                    <form onSubmit={handleFiltros} className="filter-form">
+                        <div className="search-input-wrapper">
+                            <input
+                                type="text"
+                                className="form-control search-input"
+                                placeholder="Buscar por nombre, correo o matrícula..."
+                                value={busqueda}
+                                onChange={e => setBusqueda(e.target.value)}
+                            />
+                            <span className="material-symbols-outlined search-icon">search</span>
+                        </div>
 
-                {/* FORMULARIO DE CREACIÓN */}
-                {mostrarFormulario && (
-                    <div style={{ background: 'white', padding: '20px', marginTop: '20px', borderRadius: '8px', border: '1px solid #ccc' }}>
-                        <h3>Registrar Nuevo Usuario</h3>
-                        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
-                            <input type="text" placeholder="Nombre completo" required value={formData.nombre_completo} onChange={e => setFormData({...formData, nombre_completo: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
-                            <input type="email" placeholder="Correo istitucional" required value={formData.correo_institucional} onChange={e => setFormData({...formData, correo_institucional: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
-                            <input type="text" placeholder="Matrícula / No. Empleado" required value={formData.matricula_empleado} onChange={e => setFormData({...formData, matricula_empleado: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
-                            <input type="password" placeholder="Contraseña" required value={formData.contrasena} onChange={e => setFormData({...formData, contrasena: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                        <select
+                            className="form-control select-filter"
+                            value={filtroRol}
+                            onChange={e => setFiltroRol(e.target.value)}
+                        >
+                            <option value="">Todos los roles</option>
+                            <option value="1">Administrador</option>
+                            <option value="2">Organizador</option>
+                        </select>
+                    </form>
+                </div>
 
-                            <select required value={formData.id_rol} onChange={e => setFormData({...formData, id_rol: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
-                                <option value="">-- Seleccionar Rol --</option>
-                                <option value="1">Administrador</option>
-                                <option value="2">Organizador</option>
-                            </select>
-                            
-                            <button type="submit" style={{ gridColumn: 'span 2', padding: '10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                                Guardar Usuario
-                            </button>
-                        </form>
-                    </div>
-                )}
-
-                {/* TABLA DE USUARIOS */}
-                <div style={{ background: 'white', marginTop: '20px', borderRadius: '8px', padding: '20px', overflowX: 'auto' }}>
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                {/* TABLA DE USUARIOS FILTRADOS */}
+                <div className="table-panel">
+                    <table className="data-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid #eee' }}>
+                            <tr>
                                 <th>Matrícula</th>
                                 <th>Nombre</th>
                                 <th>Correo</th>
                                 <th>Rol</th>
                                 <th>Estado</th>
-                                <th>Acciones</th>
+                                <th className="th-actions">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {usuarios?.data && usuarios.data.length > 0 ? (
-                                usuarios.data.map(user => (
-                                    <tr key={user.id_usuario} style={{ borderBottom: '1px solid #eee' }}>
-                                        <td style={{ padding: '15px 0' }}>{user.matricula_empleado}</td>
-                                        <td>{user.nombre_completo}</td>
-                                        <td>{user.correo}</td>
-                                        <td>{user.id_rol === 1 ? 'Admin' : 'Organizador'}</td>
-                                        <td>
-                                            <span style={{ color: user.estado === 'Activo' ? 'green' : 'red', fontWeight: 'bold' }}>
-                                                {user.estado}
-                                            </span>
-                                        </td>
-                                        <td style={{ display: 'flex', gap: '5px' }}>
-                                            {/* Botones de acción requeridos en tu rúbrica */}
-                                            <Link href={`/usuarios/${user.id_usuario}`} style={{ background: '#3b82f6', color: 'white', padding: '5px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '12px' }}>Ver Perfil</Link>
-                                            <button style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Editar</button>
-                                            <button onClick={() => handleCambiarEstado(user.id_usuario, user.estado)} style={{ background: user.estado === 'Activo' ? '#ef4444' : '#10b981', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
-                                                {user.estado === 'Activo' ? 'Desactivar' : 'Activar'}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                            {usuariosFiltrados.length > 0 ? (
+                                usuariosFiltrados.map(user => {
+                                    const estadoNombre = user.estado_usuario ?? user.estado ?? (user.deleted_at ? 'Inactivo' : 'Activo');
+                                    const esActivo = estadoNombre === 'Activo' || estadoNombre === 1 || estadoNombre === '1';
+
+                                    return (
+                                        <tr key={user.id_usuario}>
+                                            <td>{user.matricula_empleado}</td>
+                                            <td className="font-semibold">{user.nombre_completo}</td>
+                                            <td>{user.correo || user.correo_institucional}</td>
+                                            <td>{user.id_rol === 1 ? 'Admin' : 'Organizador'}</td>
+                                            <td>
+                                                <span className={`badge ${esActivo ? 'badge-active' : 'badge-inactive'}`}>
+                                                    {esActivo ? 'Activo' : 'Inactivo'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="actions-wrapper">
+                                                    {/* Ver Perfil */}
+                                                    <Link
+                                                        href={`/usuarios/${user.id_usuario}`}
+                                                        className="btn-action btn-action-view"
+                                                        title="Ver perfil"
+                                                        onMouseEnter={(e) => handleMouseEnter(e, user)}
+                                                        onMouseLeave={handleMouseLeave}
+                                                    >
+                                                        <span className="material-symbols-outlined">visibility</span>
+                                                    </Link>
+
+                                                    {/* Editar */}
+                                                    <button
+                                                        onClick={() => handleAbrirEditar(user)}
+                                                        className="btn-action btn-action-edit"
+                                                        title="Editar usuario"
+                                                    >
+                                                        <span className="material-symbols-outlined">edit</span>
+                                                    </button>
+
+                                                    {/* Activar / Desactivar */}
+                                                    <button
+                                                        onClick={() => handleCambiarEstado(user.id_usuario, esActivo ? 'Activo' : 'Inactivo')}
+                                                        className={`btn-action ${esActivo ? 'btn-action-success' : 'btn-action-danger'}`}
+                                                        title={esActivo ? "Desactivar usuario" : "Activar usuario"}
+                                                    >
+                                                        <span className="material-symbols-outlined">
+                                                            {esActivo ? 'check_circle' : 'block'}
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
-                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>No hay usuarios registrados.</td></tr>
+                                <tr>
+                                    <td colSpan="6" className="empty-table-msg">
+                                        No se encontraron usuarios que coincidan con la búsqueda.
+                                    </td>
+                                </tr>
                             )}
                         </tbody>
                     </table>
+                </div>
+            </main>
 
-                    {/* PAGINACIÓN */}
-                    <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-                        {usuarios?.links && usuarios.links.map((link, index) => (
-                            link.url ? (
-                                <Link key={index} href={link.url} style={{ padding: '5px 10px', background: link.active ? '#3b82f6' : '#e5e7eb', color: link.active ? 'white' : 'black', textDecoration: 'none', borderRadius: '4px' }} dangerouslySetInnerHTML={{ __html: link.label }} />
-                            ) : (
-                                <span key={index} style={{ padding: '5px 10px', background: '#f3f4f6', color: '#9ca3af', borderRadius: '4px' }} dangerouslySetInnerHTML={{ __html: link.label }} />
-                            )
-                        ))}
+            {/* MODAL REGISTRAR USUARIO */}
+            {mostrarFormulario && (
+                <div className="modal-overlay">
+                    <div className="modal-container">
+                        <div className="modal-header">
+                            <h3 className="modal-title">Registrar Nuevo Usuario</h3>
+                            <button 
+                                type="button" 
+                                className="btn-close" 
+                                onClick={() => setMostrarFormulario(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {errors && Object.keys(errors).length > 0 && (
+                            <div className="error-messages">
+                                {Object.values(errors).map((err, idx) => (
+                                    <p key={idx} className="error-text">• {err}</p>
+                                ))}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="modal-form">
+                            <div className="form-group">
+                                <label className="form-label">Nombre completo</label>
+                                <input
+                                    type="text"
+                                    className="form-control2"
+                                    placeholder="Ej. Juan Pérez"
+                                    required
+                                    value={formData.nombre_completo}
+                                    onChange={e => setFormData({ ...formData, nombre_completo: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Correo institucional</label>
+                                <input
+                                    type="email"
+                                    className="form-control2"
+                                    placeholder="usuario@universidad.edu"
+                                    required
+                                    value={formData.correo_institucional}
+                                    onChange={e => setFormData({ ...formData, correo_institucional: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Matrícula / No. Empleado</label>
+                                <input
+                                    type="text"
+                                    className="form-control2"
+                                    placeholder="Ej. A01234567"
+                                    required
+                                    value={formData.matricula_empleado}
+                                    onChange={e => setFormData({ ...formData, matricula_empleado: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Contraseña</label>
+                                <input
+                                    type="password"
+                                    className="form-control2"
+                                    placeholder="••••••••"
+                                    required
+                                    value={formData.contrasena}
+                                    onChange={e => setFormData({ ...formData, contrasena: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Rol</label>
+                                <select
+                                    className="form-control2"
+                                    required
+                                    value={formData.id_rol}
+                                    onChange={e => setFormData({ ...formData, id_rol: e.target.value })}
+                                >
+                                    <option value="">-- Seleccionar Rol --</option>
+                                    <option value="1">Administrador</option>
+                                    <option value="2">Organizador</option>
+                                </select>
+                            </div>
+
+                            <div className="modal-actions">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setMostrarFormulario(false)} 
+                                    className="btn-secondary"
+                                >
+                                    Cancelar
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    Guardar Usuario
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {/* MODAL EDITAR USUARIO */}
+            {usuarioEditando && (
+                <div className="modal-overlay">
+                    <div className="modal-container">
+                        <div className="modal-header">
+                            <h3 className="modal-title">Editar Usuario</h3>
+                            <button 
+                                type="button" 
+                                className="btn-close" 
+                                onClick={() => setUsuarioEditando(null)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdate} className="modal-form">
+                            <div className="form-group">
+                                <label className="form-label">Nombre completo</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    required
+                                    value={usuarioEditando.nombre_completo}
+                                    onChange={e => setUsuarioEditando({ ...usuarioEditando, nombre_completo: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Correo institucional</label>
+                                <input
+                                    type="email"
+                                    className="form-control"
+                                    required
+                                    value={usuarioEditando.correo_institucional}
+                                    onChange={e => setUsuarioEditando({ ...usuarioEditando, correo_institucional: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Matrícula / No. Empleado</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    required
+                                    value={usuarioEditando.matricula_empleado}
+                                    onChange={e => setUsuarioEditando({ ...usuarioEditando, matricula_empleado: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Rol</label>
+                                <select
+                                    className="form-control"
+                                    required
+                                    value={usuarioEditando.id_rol}
+                                    onChange={e => setUsuarioEditando({ ...usuarioEditando, id_rol: e.target.value })}
+                                >
+                                    <option value="1">Administrador</option>
+                                    <option value="2">Organizador</option>
+                                </select>
+                            </div>
+
+                            <div className="modal-actions">
+                                <button type="button" onClick={() => setUsuarioEditando(null)} className="btn-secondary">
+                                    Cancelar
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    Guardar Cambios
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* TOOLTIP FLOATING PREVIEW */}
+            {previewUsuario && (
+                <div
+                    className="tooltip-preview"
+                    style={{
+                        position: 'fixed',
+                        top: `${posicionTooltip.top}px`,
+                        left: `${posicionTooltip.left}px`,
+                        zIndex: 9999,
+                        pointerEvents: 'none'
+                    }}
+                >
+                    <div className="tooltip-header">
+                        <div className="avatar-circle">
+                            {previewUsuario.nombre_completo ? previewUsuario.nombre_completo.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                            <div className="tooltip-name">{previewUsuario.nombre_completo}</div>
+                            <div className="tooltip-role">{previewUsuario.id_rol === 1 ? 'Administrador' : 'Organizador'}</div>
+                        </div>
+                    </div>
+
+                    <div className="tooltip-body">
+                        <div><strong>Matrícula:</strong> {previewUsuario.matricula_empleado}</div>
+                        <div><strong>Correo:</strong> {previewUsuario.correo || previewUsuario.correo_institucional}</div>
+                        <div><strong>Estado:</strong> {previewUsuario.estado || (previewUsuario.deleted_at ? 'Inactivo' : 'Activo')}</div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

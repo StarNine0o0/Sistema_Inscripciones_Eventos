@@ -46,6 +46,20 @@ class AuthController extends Controller
             'usuario' => $usuario->load('rol')
         ], 200);
     }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+
+        // Invalida la sesión actual del usuario
+        $request->session()->invalidate();
+
+        // Regenera el token CSRF por seguridad
+        $request->session()->regenerateToken();
+
+        return redirect('/login');
+    }
+
     public function register(Request $request)
     {
      
@@ -75,17 +89,6 @@ class AuthController extends Controller
             'token' => $token,
             'usuario' => $usuario->load('rol')
         ], 201);
-    }
-    
-    
-    public function logout(Request $request)
-    {
-        // Revocar el token del usuario autenticado
-        $request->user()->currentAccessToken()->delete();
-
-        return response()->json([
-            'mensaje' => 'Cierre de sesión exitoso'
-        ], 200);
     }
 
 
